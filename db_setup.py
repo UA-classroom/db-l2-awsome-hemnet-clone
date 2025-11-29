@@ -25,13 +25,58 @@ def get_connection():
     )
 
 
-def create_tables():
+def create_tables() -> bool:
     """
     A function to create the necessary tables for the project.
     """
     connection = get_connection()
-    # Implement
-    pass
+    with connection, connection.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS schema_version (
+                version INT NOT NULL
+            );
+        """)
+        cur.execute("SELECT version FROM schema_version")
+
+        version = cur.fetchone()
+
+        if version is not None and version[0] >= 1:
+            return False
+
+        with open("schema.sql", "r", encoding="utf-8") as f:
+            sql = f.read()
+
+        statements = [s.strip() for s in sql.split(";") if s.strip()]
+
+        for stmt in statements:
+            cur.execute(stmt)
+
+        cur.execute("""
+            INSERT INTO schema_version (version) VALUES (1)
+            ON CONFLICT DO NOTHING;
+        """)
+
+        return True
+
+
+def seed_tables():
+    """
+    A function to seed database data
+    """
+    connection = get_connection()
+    with connection, connection.cursor() as cur:
+        with open("seed_inserts.sql", "r", encoding="utf-8") as f:
+            sql = f.read()
+
+        statements = [s.strip() for s in sql.split(";") if s.strip()]
+
+        for stmt in statements:
+            cur.execute(stmt)
+
+
+def run_setup():
+    if create_tables():
+        seed_tables()
 
 
 if __name__ == "__main__":

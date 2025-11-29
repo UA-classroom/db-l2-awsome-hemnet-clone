@@ -1,6 +1,6 @@
 from typing import List, Optional
 from db import fetch_all, fetch_one
-from db_setup import get_connection
+from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
 from psycopg2 import OperationalError
 
@@ -13,6 +13,8 @@ tags_metadata = [
 ]
 
 app = FastAPI(title="Hemnet Clone API", version="1.0.0", openapi_tags=tags_metadata)
+
+run_setup()
 
 
 def get_db():
@@ -137,7 +139,7 @@ def listing_detail(listing_id: int, conn=Depends(get_db)):
     return _raise_if_not_found(row, "Listing")
 
 
-@app.get("/listings/{listing_id}/media")
+@app.get("/listings/{listing_id}/media", tags=["listings"])
 def listing_media(listing_id: int, conn=Depends(get_db)):
     query = """
         SELECT id, media_type_id, url, caption, position, updated_at
