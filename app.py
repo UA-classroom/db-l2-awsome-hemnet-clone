@@ -283,3 +283,15 @@ def user_saved_listings(user_id: int, connection=Depends(get_db)):
     """
     rows = fetch_all(connection, query, (user_id,))
     return {"count": len(rows), "items": rows}
+
+
+@app.get("/users/{user_id}/searches", tags=["users"])
+def user_saved_searches(user_id: int, connection=Depends(get_db)):
+    query = """
+        SELECT id, name, send_email, created_at, updated_at
+        FROM saved_searches
+        WHERE user_id = %s
+        ORDER BY created_at DESC
+    """
+    rows = fetch_all(connection, query, (user_id,))
+    return {"count": len(rows), "items": rows}
