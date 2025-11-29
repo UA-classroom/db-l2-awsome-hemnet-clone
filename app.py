@@ -295,3 +295,20 @@ def user_saved_searches(user_id: int, connection=Depends(get_db)):
     """
     rows = fetch_all(connection, query, (user_id,))
     return {"count": len(rows), "items": rows}
+
+
+# TBD: Vet inte om denna endpoint är nödvändigt
+@app.get("/locations")
+def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
+    query = """
+        SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
+        FROM locations
+    """
+    params: List = []
+    if city:
+        query += " WHERE city ILIKE %s"
+        params.append(f"%{city}%")
+
+    query += " ORDER BY id"
+    rows = fetch_all(conn, query, params)
+    return {"count": len(rows), "items": rows}
