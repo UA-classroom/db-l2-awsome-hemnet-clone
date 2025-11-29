@@ -25,20 +25,20 @@ def get_connection():
     )
 
 
-def create_tables() -> bool:
+def _create_tables() -> bool:
     """
     A function to create the necessary tables for the project.
     """
     connection = get_connection()
-    with connection, connection.cursor() as cur:
-        cur.execute("""
+    with connection, connection.cursor() as cursor:
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS schema_version (
                 version INT NOT NULL
             );
         """)
-        cur.execute("SELECT version FROM schema_version")
+        cursor.execute("SELECT version FROM schema_version")
 
-        version = cur.fetchone()
+        version = cursor.fetchone()
 
         if version is not None and version[0] >= 1:
             return False
@@ -48,10 +48,10 @@ def create_tables() -> bool:
 
         statements = [s.strip() for s in sql.split(";") if s.strip()]
 
-        for stmt in statements:
-            cur.execute(stmt)
+        for statement in statements:
+            cursor.execute(statement)
 
-        cur.execute("""
+        cursor.execute("""
             INSERT INTO schema_version (version) VALUES (1)
             ON CONFLICT DO NOTHING;
         """)
@@ -59,27 +59,21 @@ def create_tables() -> bool:
         return True
 
 
-def seed_tables():
+def _seed_tables():
     """
     A function to seed database data
     """
     connection = get_connection()
-    with connection, connection.cursor() as cur:
+    with connection, connection.cursor() as cursor:
         with open("seed_inserts.sql", "r", encoding="utf-8") as f:
             sql = f.read()
 
         statements = [s.strip() for s in sql.split(";") if s.strip()]
 
-        for stmt in statements:
-            cur.execute(stmt)
+        for statement in statements:
+            cursor.execute(statement)
 
 
 def run_setup():
-    if create_tables():
-        seed_tables()
-
-
-if __name__ == "__main__":
-    # Only reason to execute this file would be to create new tables, meaning it serves a migration file
-    create_tables()
-    print("Tables created successfully.")
+    if _create_tables():
+        _seed_tables()
