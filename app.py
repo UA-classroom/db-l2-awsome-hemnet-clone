@@ -4,6 +4,8 @@ from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
 from psycopg2 import OperationalError
 
+# TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
+# TODO: Lägg även till OFFSET på de som har LIMIT
 
 tags_metadata = [
     {
@@ -30,16 +32,16 @@ run_setup()
 
 
 def get_db():
-    con = get_connection()
+    conection = get_connection()
     try:
-        yield con
+        yield conection
     except OperationalError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Could not connect to Database",
         )
     finally:
-        con.close()
+        conection.close()
 
 
 def _raise_if_not_found(row, label: str):
@@ -58,7 +60,7 @@ def list_listings(
     max_price: Optional[float] = None,
     min_rooms: Optional[float] = None,
     max_rooms: Optional[float] = None,
-    conn=Depends(get_db),
+    connection=Depends(get_db),
 ):
     query = """
         SELECT l.id,
@@ -102,12 +104,12 @@ def list_listings(
         query += " WHERE " + " AND ".join(conditions)
     query += " ORDER BY l.id"
 
-    rows = fetch_all(conn, query, params)
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/listings/{listing_id}", tags=["listings"])
-def listing_detail(listing_id: int, conn=Depends(get_db)):
+def listing_detail(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT l.id,
                l.title,
@@ -147,24 +149,24 @@ def listing_detail(listing_id: int, conn=Depends(get_db)):
         WHERE l.id = %s
         LIMIT 1
     """
-    row = fetch_one(conn, query, (listing_id,))
+    row = fetch_one(connection, query, (listing_id,))
     return _raise_if_not_found(row, "Listing")
 
 
 @app.get("/listings/{listing_id}/media", tags=["listings"])
-def listing_media(listing_id: int, conn=Depends(get_db)):
+def listing_media(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT id, media_type_id, url, caption, position, updated_at
         FROM listing_media
         WHERE listing_id = %s
         ORDER BY position NULLS LAST, id
     """
-    rows = fetch_all(conn, query, (listing_id,))
+    rows = fetch_all(connection, query, (listing_id,))
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/listings/{listing_id}/open-houses", tags=["listings"])
-def listing_open_houses(listing_id: int, conn=Depends(get_db)):
+def listing_open_houses(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT oh.id,
                oh.starts_at,
@@ -176,12 +178,12 @@ def listing_open_houses(listing_id: int, conn=Depends(get_db)):
         WHERE oh.listing_id = %s
         ORDER BY oh.starts_at
     """
-    rows = fetch_all(conn, query, (listing_id,))
+    rows = fetch_all(connection, query, (listing_id,))
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/properties/{property_id}", tags=["properties"])
-def property_detail(property_id: int, conn=Depends(get_db)):
+def property_detail(property_id: int, connection=Depends(get_db)):
     query = """
         SELECT p.id,
                p.location_id,
@@ -200,12 +202,12 @@ def property_detail(property_id: int, conn=Depends(get_db)):
         FROM properties p
         WHERE p.id = %s
     """
-    row = fetch_one(conn, query, (property_id,))
+    row = fetch_one(connection, query, (property_id,))
     return _raise_if_not_found(row, "Property")
 
 
 @app.get("/agents", tags=["agents"])
-def list_agents(conn=Depends(get_db)):
+def list_agents(connection=Depends(get_db)):
     query = """
         SELECT a.id,
                u.first_name,
@@ -221,12 +223,12 @@ def list_agents(conn=Depends(get_db)):
         LEFT JOIN agencies ag ON aa.agency_id = ag.id
         ORDER BY a.id
     """
-    rows = fetch_all(conn, query)
+    rows = fetch_all(connection, query)
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/agents/{agent_id}", tags=["agents"])
-def agent_detail(agent_id: int, conn=Depends(get_db)):
+def agent_detail(agent_id: int, connection=Depends(get_db)):
     query = """
         SELECT a.id,
                u.first_name,
@@ -243,5 +245,41 @@ def agent_detail(agent_id: int, conn=Depends(get_db)):
         LEFT JOIN agencies ag ON aa.agency_id = ag.id
         WHERE a.id = %s
     """
-    row = fetch_one(conn, query, (agent_id,))
+    row = fetch_one(connection, query, (agent_id,))
     return _raise_if_not_found(row, "Agent")
+
+
+@app.get("/users", tags=["users"])
+def list_users(connection=Depends(get_db)):
+    query = """
+        SELECT u.first_name, u.last_name, u.email, ur.name AS role
+        FROM users u
+        LEFT JOIN user_roles ur ON u.id = ur.user_id;
+    """
+    rows = fetch_all(connection, query)
+    return {"count": len(rows), "items": rows}
+
+
+@app.get("/users/{user_id}/saved-listings", tags=["users"])
+def user_saved_listings(user_id: int, connection=Depends(get_db)):
+    query = """
+        SELECT sl.id,
+               sl.created_at,
+               l.id AS listing_id,
+               l.title,
+               l.list_price,
+               ls.name AS status,
+               loc.city,
+               pt.name AS property_type
+        FROM saved_listings sl
+        JOIN listings l ON sl.listing_id = l.id
+        JOIN listing_status ls ON l.status_id = ls.id
+        JOIN listing_properties lp ON l.id = lp.listing_id
+        JOIN properties p ON lp.property_id = p.id
+        JOIN property_types pt ON p.property_type_id = pt.id
+        JOIN locations loc ON p.location_id = loc.id
+        WHERE sl.user_id = %s
+        ORDER BY sl.created_at DESC
+    """
+    rows = fetch_all(connection, query, (user_id,))
+    return {"count": len(rows), "items": rows}
