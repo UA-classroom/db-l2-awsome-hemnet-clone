@@ -35,3 +35,19 @@ def fetch_all(
         else:
             cursor.execute(query, params)
         return cursor.fetchall()
+
+
+def fetch_one(
+    con: psycopg2.extensions.connection,
+    query: str,
+    params: Optional[_SQLParams] = None,
+):
+    """
+    Helper for read operations that should return a single row.
+    """
+    with con.cursor(cursor_factory=RealDictCursor) as cursor:
+        if params is None:
+            cursor.execute(query)
+        else:
+            cursor.execute(query, params)
+        return cursor.fetchone()

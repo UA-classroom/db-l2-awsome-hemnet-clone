@@ -1,7 +1,8 @@
 from typing import List, Optional
-from db import fetch_all
+from db import fetch_all, fetch_one
 from db_setup import get_connection
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, status
+from psycopg2 import OperationalError
 
 
 tags_metadata = [
@@ -18,8 +19,21 @@ def get_db():
     con = get_connection()
     try:
         yield con
+    except OperationalError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not connect to Database",
+        )
     finally:
         con.close()
+
+
+def _raise_if_not_found(row, label: str):
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"{label} not found"
+        )
+    return row
 
 
 @app.get("/listings", tags=["listings"])
@@ -75,4 +89,61 @@ def list_listings(
     query += " ORDER BY l.id"
 
     rows = fetch_all(conn, query, params)
+    return {"count": len(rows), "items": rows}
+
+
+@app.get("/listings/{listing_id}", tags=["listings"])
+def listing_detail(listing_id: int, conn=Depends(get_db)):
+    query = """
+        SELECT l.id,
+               l.title,
+               l.description,
+               ls.name AS status,
+               l.list_price,
+               l.price_type_id,
+               l.published_at,
+               l.expires_at,
+               l.external_ref,
+               pt.name AS property_type,
+               t.name AS tenure,
+               p.rooms,
+               p.living_area_sqm,
+               p.plot_area_sqm,
+               p.energy_class,
+               p.year_built,
+               loc.street_address,
+               loc.postal_code,
+               loc.city,
+               loc.municipality,
+               u.first_name || ' ' || u.last_name AS agent_name,
+               u.phone AS agent_phone,
+               ag.name AS agency
+        FROM listings l
+        JOIN listing_status ls ON l.status_id = ls.id
+        JOIN listing_properties lp ON l.id = lp.listing_id
+        JOIN properties p ON lp.property_id = p.id
+        JOIN property_types pt ON p.property_type_id = pt.id
+        JOIN tenures t ON p.tenure_id = t.id
+        JOIN locations loc ON p.location_id = loc.id
+        JOIN listing_agents la ON l.id = la.listing_id
+        JOIN agents a ON la.agent_id = a.id
+        JOIN users u ON a.user_id = u.id
+        LEFT JOIN agent_agencies aa ON a.id = aa.agent_id
+        LEFT JOIN agencies ag ON aa.agency_id = ag.id
+        WHERE l.id = %s
+        LIMIT 1
+    """
+    row = fetch_one(conn, query, (listing_id,))
+    return _raise_if_not_found(row, "Listing")
+
+
+@app.get("/listings/{listing_id}/media")
+def listing_media(listing_id: int, conn=Depends(get_db)):
+    query = """
+        SELECT id, media_type_id, url, caption, position, updated_at
+        FROM listing_media
+        WHERE listing_id = %s
+        ORDER BY position NULLS LAST, id
+    """
+    rows = fetch_all(conn, query, (listing_id,))
     return {"count": len(rows), "items": rows}
