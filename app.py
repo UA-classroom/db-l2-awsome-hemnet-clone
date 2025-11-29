@@ -149,3 +149,20 @@ def listing_media(listing_id: int, conn=Depends(get_db)):
     """
     rows = fetch_all(conn, query, (listing_id,))
     return {"count": len(rows), "items": rows}
+
+
+@app.get("/listings/{listing_id}/open-houses", tags=["listings"])
+def listing_open_houses(listing_id: int, conn=Depends(get_db)):
+    query = """
+        SELECT oh.id,
+               oh.starts_at,
+               oh.ends_at,
+               oht.name AS type,
+               oh.note
+        FROM open_houses oh
+        JOIN open_house_types oht ON oh.type_id = oht.id
+        WHERE oh.listing_id = %s
+        ORDER BY oh.starts_at
+    """
+    rows = fetch_all(conn, query, (listing_id,))
+    return {"count": len(rows), "items": rows}
