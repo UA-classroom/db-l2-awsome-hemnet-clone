@@ -14,6 +14,10 @@ tags_metadata = [
         "name": "properties",
         "description": "Get property info.",
     },
+    {
+        "name": "agents",
+        "description": "Get agents info.",
+    },
 ]
 
 app = FastAPI(title="Hemnet Clone API", version="1.0.0", openapi_tags=tags_metadata)
@@ -194,3 +198,24 @@ def property_detail(property_id: int, conn=Depends(get_db)):
     """
     row = fetch_one(conn, query, (property_id,))
     return _raise_if_not_found(row, "Property")
+
+
+@app.get("/agents", tags=["agents"])
+def list_agents(conn=Depends(get_db)):
+    query = """
+        SELECT a.id,
+               u.first_name,
+               u.last_name,
+               u.email,
+               u.phone,
+               a.title,
+               a.license_number,
+               ag.name AS agency
+        FROM agents a
+        JOIN users u ON a.user_id = u.id
+        LEFT JOIN agent_agencies aa ON a.id = aa.agent_id
+        LEFT JOIN agencies ag ON aa.agency_id = ag.id
+        ORDER BY a.id
+    """
+    rows = fetch_all(conn, query)
+    return {"count": len(rows), "items": rows}
