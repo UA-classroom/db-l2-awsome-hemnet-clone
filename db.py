@@ -1,5 +1,8 @@
+from typing import Any, Mapping, Sequence, Optional, TypeAlias
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+_SQLParams: TypeAlias = Sequence[Any] | Mapping[str, Any]
 
 """
 This file is responsible for making database queries, which your fastapi endpoints/routes can use.
@@ -18,31 +21,17 @@ start with a connection parameter.
 """
 
 
-### THIS IS JUST AN EXAMPLE OF A FUNCTION FOR INSPIRATION FOR A LIST-OPERATION (FETCHING MANY ENTRIES)
-# def get_items(con):
-#     with con:
-#         with con.cursor(cursor_factory=RealDictCursor) as cursor:
-#             cursor.execute("SELECT * FROM items;")
-#             items = cursor.fetchall()
-#     return items
-
-
-### THIS IS JUST INSPIRATION FOR A DETAIL OPERATION (FETCHING ONE ENTRY)
-# def get_item(con, item_id):
-#     with con:
-#         with con.cursor(cursor_factory=RealDictCursor) as cursor:
-#             cursor.execute("""SELECT * FROM items WHERE id = %s""", (item_id,))
-#             item = cursor.fetchone()
-#             return item
-
-
-### THIS IS JUST INSPIRATION FOR A CREATE-OPERATION
-# def add_item(con, title, description):
-#     with con:
-#         with con.cursor(cursor_factory=RealDictCursor) as cursor:
-#             cursor.execute(
-#                 "INSERT INTO items (title, description) VALUES (%s, %s) RETURNING id;",
-#                 (title, description),
-#             )
-#             item_id = cursor.fetchone()["id"]
-#     return item_id
+def fetch_all(
+    con: psycopg2.extensions.connection,
+    query: str,
+    params: Optional[_SQLParams] = None,
+):
+    """
+    Helper for read operations that should return many rows.
+    """
+    with con.cursor(cursor_factory=RealDictCursor) as cursor:
+        if params is None:
+            cursor.execute(query)
+        else:
+            cursor.execute(query, params)
+        return cursor.fetchall()

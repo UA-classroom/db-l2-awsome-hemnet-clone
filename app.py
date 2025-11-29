@@ -1,38 +1,78 @@
-import os
-
-import psycopg2
+from typing import List, Optional
+from db import fetch_all
 from db_setup import get_connection
-from fastapi import FastAPI, HTTPException
-
-app = FastAPI()
-
-"""
-ADD ENDPOINTS FOR FASTAPI HERE
-Make sure to do the following:
-- Use the correct HTTP method (e.g get, post, put, delete)
-- Use correct STATUS CODES, e.g 200, 400, 401 etc. when returning a result to the user
-- Use pydantic models whenever you receive user data and need to validate the structure and data types (VG)
-This means you need some error handling that determine what should be returned to the user
-Read more: https://www.geeksforgeeks.org/10-most-common-http-status-codes/
-- Use correct URL paths the resource, e.g some endpoints should be located at the exact same URL, 
-but will have different HTTP-verbs.
-"""
+from fastapi import FastAPI, HTTPException, Depends
 
 
-# INSPIRATION FOR A LIST-ENDPOINT - Not necessary to use pydantic models, but we could to ascertain that we return the correct values
-# @app.get("/items/")
-# def read_items():
-#     con = get_connection()
-#     items = get_items(con)
-#     return {"items": items}
+tags_metadata = [
+    {
+        "name": "listings",
+        "description": "Operations with listings.",
+    },
+]
+
+app = FastAPI(title="Hemnet Clone API", version="1.0.0", openapi_tags=tags_metadata)
 
 
-# INSPIRATION FOR A POST-ENDPOINT, uses a pydantic model to validate
-# @app.post("/validation_items/")
-# def create_item_validation(item: ItemCreate):
-#     con = get_connection()
-#     item_id = add_item_validation(con, item)
-#     return {"item_id": item_id}
+def get_db():
+    con = get_connection()
+    try:
+        yield con
+    finally:
+        con.close()
 
 
-# IMPLEMENT THE ACTUAL ENDPOINTS! Feel free to remove
+@app.get("/listings", tags=["listings"])
+def list_listings(
+    status_name: Optional[str] = None,
+    city: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_rooms: Optional[float] = None,
+    max_rooms: Optional[float] = None,
+    conn=Depends(get_db),
+):
+    query = """
+        SELECT l.id,
+               l.title,
+               ls.name AS status,
+               l.list_price,
+               pt.name AS property_type,
+               p.rooms,
+               p.living_area_sqm,
+               loc.city
+        FROM listings l
+        JOIN listing_status ls ON l.status_id = ls.id
+        JOIN listing_properties lp ON l.id = lp.listing_id
+        JOIN properties p ON lp.property_id = p.id
+        JOIN property_types pt ON p.property_type_id = pt.id
+        JOIN locations loc ON p.location_id = loc.id
+    """
+    conditions: List[str] = []
+    params: List = []
+
+    if status_name:
+        conditions.append("ls.name = %s")
+        params.append(status_name)
+    if city:
+        conditions.append("loc.city ILIKE %s")
+        params.append(f"%{city}%")
+    if min_price is not None:
+        conditions.append("l.list_price >= %s")
+        params.append(min_price)
+    if max_price is not None:
+        conditions.append("l.list_price <= %s")
+        params.append(max_price)
+    if min_rooms is not None:
+        conditions.append("p.rooms >= %s")
+        params.append(min_rooms)
+    if max_rooms is not None:
+        conditions.append("p.rooms <= %s")
+        params.append(max_rooms)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    query += " ORDER BY l.id"
+
+    rows = fetch_all(conn, query, params)
+    return {"count": len(rows), "items": rows}
