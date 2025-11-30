@@ -116,3 +116,10 @@ class SavedListingCreate(BaseModel):
 class SavedSearchCreate(BaseModel):
     name: str
     send_email: bool = False
+
+
+class SavedAgencyCreate(BaseModel):
+    name: str
+    org_number: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None

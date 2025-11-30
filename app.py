@@ -19,9 +19,9 @@ from schemas import (
     UserUpdate,
     PropertyUpdate,
     ListingUpdate,
+    SavedAgencyCreate,
 )
 
-# TODO: Lägg även till OFFSET på de som har LIMIT
 # TODO: Skapa update och delete operationer för agenter
 # TODO: SKapa fler operation för agenturer
 
@@ -344,6 +344,34 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
         WHERE a.id = %s
     """
     row = fetch_one(connection, query, (agent_id,))
+    return _raise_if_not_found(row, "Agent")
+
+
+@app.get("/agencies", tags=["agencies"])
+def list_agencies(
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
+    query = """
+        SELECT id,
+               name,
+               org_number,
+               phone,
+               website
+        FROM agencies
+    """
+
+    params: List = []
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    row = fetch_one(connection, query, params)
     return _raise_if_not_found(row, "Agent")
 
 
@@ -727,6 +755,25 @@ def create_saved_search(
     try:
         row = execute_returning(
             connection, query, (user_id, payload.name, payload.send_email)
+        )
+
+        return row
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not create saved search")
+
+
+@app.post("/agencies", status_code=status.HTTP_201_CREATED, tags=["agencies"])
+def create_agency(payload: SavedAgencyCreate, connection=Depends(get_db)):
+    query = """
+        INSERT INTO agencies (name, org_number, phone, website, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        RETURNING id, name, org_number, phone, website, created_at
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (payload.name, payload.org_number, payload.phone, payload.website),
         )
 
         return row
