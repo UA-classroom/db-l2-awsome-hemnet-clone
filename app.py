@@ -795,3 +795,33 @@ def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(g
         return _raise_if_not_found(listing, "Listing")
     except IntegrityError as exc:
         _handle_error(exc, "Could not update listing")
+
+
+@app.put("/users/{user_id}/searches/{search_id}")
+def update_saved_search(
+    user_id: int,
+    search_id: int,
+    name: str,
+    send_email: bool = False,
+    connection=Depends(get_db),
+):
+    query = """
+        UPDATE saved_searches
+        SET name = %s,
+            send_email = %s,
+            updated_at = NOW()
+        WHERE id = %s AND user_id = %s
+        RETURNING id, user_id, name, send_email, created_at, updated_at
+    """
+    try:
+        row = execute_returning(
+            connection, query, (name, send_email, search_id, user_id)
+        )
+        return _raise_if_not_found(row, "Saved search")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update saved search")
+
+
+#########################################
+#               DELETE                  #
+#########################################
