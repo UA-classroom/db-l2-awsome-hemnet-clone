@@ -17,6 +17,7 @@ from schemas import (
     AddressUpdate,
     LocationUpdate,
     UserUpdate,
+    PropertyUpdate,
 )
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
@@ -701,3 +702,49 @@ def update_user(user_id: int, payload: UserUpdate, connection=Depends(get_db)):
         return _raise_if_not_found(row, "User")
     except IntegrityError as exc:
         _handle_error(exc, "Could not update user")
+
+
+@app.put("/properties/{property_id}")
+def update_property(
+    property_id: int, payload: PropertyUpdate, connection=Depends(get_db)
+):
+    query = """
+        UPDATE properties
+        SET location_id = %s,
+            property_type_id = %s,
+            tenure_id = %s,
+            year_built = COALESCE(%s, year_built)
+            living_area_sqm = COALESCE(%s, living_area_sqm)
+            additional_area_sqm = COALESCE(%s, additional_area_sqm)
+            plot_area_sqm = COALESCE(%s, plot_area_sqm)
+            rooms = COALESCE(%s, rooms)
+            floor = COALESCE(%s, floor)
+            monthly_fee = COALESCE(%s, monthly_fee)
+            energy_class = COALESCE(%s, energy_class)
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.location_id,
+                payload.property_type_id,
+                payload.tenure_id,
+                payload.year_built,
+                payload.living_area_sqm,
+                payload.additional_area_sqm,
+                payload.plot_area_sqm,
+                payload.rooms,
+                payload.floor,
+                payload.monthly_fee,
+                payload.energy_class,
+                property_id,
+            ),
+        )
+
+        return _raise_if_not_found(row, "Property")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update property")
