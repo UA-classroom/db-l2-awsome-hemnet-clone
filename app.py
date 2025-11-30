@@ -22,8 +22,6 @@ from schemas import (
     SavedAgencyCreate,
 )
 
-# TODO: Skapa update och delete operationer för agenter
-# TODO: SKapa fler operation för agenturer
 
 tags_metadata = [
     {
@@ -371,8 +369,8 @@ def list_agencies(
         query += " OFFSET %s"
         params.append(offset)
 
-    row = fetch_one(connection, query, params)
-    return _raise_if_not_found(row, "Agent")
+    rows = fetch_all(connection, query, params)
+    return {"count": len(rows), "items": rows}
 
 
 @app.get("/users", tags=["users"])
@@ -1146,9 +1144,16 @@ def delete_agent(agent_id: int, connection=Depends(get_db)):
     tags=["agencies"],
 )
 def delete_agency(agency_id: int, connection=Depends(get_db)):
-    execute_returning(
-        connection, "DELETE FROM agent_agencies WHERE agency_id = %s", (agency_id,)
+    in_use = fetch_one(
+        connection,
+        "SELECT COUNT(*) AS count FROM agent_agencies WHERE agency_id = %s",
+        (agency_id,),
     )
+
+    if in_use and in_use["count"] > 0:
+        execute_returning(
+            connection, "DELETE FROM agent_agencies WHERE agency_id = %s", (agency_id,)
+        )
 
     deleted = execute_returning(
         connection,
