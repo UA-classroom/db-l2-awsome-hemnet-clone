@@ -21,9 +21,9 @@ from schemas import (
     ListingUpdate,
 )
 
-# TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
 # TODO: Skapa update och delete operationer för agenter
+# TODO: SKapa fler operation för agenturer
 
 tags_metadata = [
     {
@@ -38,6 +38,7 @@ tags_metadata = [
         "name": "agents",
         "description": "Operations with agents info.",
     },
+    {"name": "agencies", "description": "Operations with agencies info."},
     {
         "name": "users",
         "description": "Operations with users info.",
@@ -89,6 +90,8 @@ def list_listings(
     max_price: Optional[float] = None,
     min_rooms: Optional[float] = None,
     max_rooms: Optional[float] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
     connection=Depends(get_db),
 ):
     query = """
@@ -132,6 +135,13 @@ def list_listings(
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
     query += " ORDER BY l.id"
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
 
     rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
@@ -183,19 +193,39 @@ def listing_detail(listing_id: int, connection=Depends(get_db)):
 
 
 @app.get("/listings/{listing_id}/media", tags=["listings"])
-def listing_media(listing_id: int, connection=Depends(get_db)):
+def listing_media(
+    listing_id: int,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT id, media_type_id, url, caption, position, updated_at
         FROM listing_media
         WHERE listing_id = %s
         ORDER BY position NULLS LAST, id
     """
-    rows = fetch_all(connection, query, (listing_id,))
+
+    params: List = [listing_id]
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/listings/{listing_id}/open-houses", tags=["listings"])
-def listing_open_houses(listing_id: int, connection=Depends(get_db)):
+def listing_open_houses(
+    listing_id: int,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT oh.id,
                oh.starts_at,
@@ -207,12 +237,27 @@ def listing_open_houses(listing_id: int, connection=Depends(get_db)):
         WHERE oh.listing_id = %s
         ORDER BY oh.starts_at
     """
-    rows = fetch_all(connection, query, (listing_id,))
+
+    params: List = [listing_id]
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/properties/{property_id}", tags=["properties"])
-def property_detail(property_id: int, connection=Depends(get_db)):
+def property_detail(
+    property_id: int,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT p.id,
                p.location_id,
@@ -231,12 +276,26 @@ def property_detail(property_id: int, connection=Depends(get_db)):
         FROM properties p
         WHERE p.id = %s
     """
-    row = fetch_one(connection, query, (property_id,))
+
+    params: List = [property_id]
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    row = fetch_one(connection, query, params)
     return _raise_if_not_found(row, "Property")
 
 
 @app.get("/agents", tags=["agents"])
-def list_agents(connection=Depends(get_db)):
+def list_agents(
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT a.id,
                u.first_name,
@@ -252,7 +311,17 @@ def list_agents(connection=Depends(get_db)):
         LEFT JOIN agencies ag ON aa.agency_id = ag.id
         ORDER BY a.id
     """
-    rows = fetch_all(connection, query)
+
+    params: List = []
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
@@ -279,18 +348,37 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
 
 
 @app.get("/users", tags=["users"])
-def list_users(connection=Depends(get_db)):
+def list_users(
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT u.first_name, u.last_name, u.email, ur.name AS role
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id;
     """
-    rows = fetch_all(connection, query)
+
+    params: List = []
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/users/{user_id}/saved-listings", tags=["users"])
-def user_saved_listings(user_id: int, connection=Depends(get_db)):
+def user_saved_listings(
+    user_id: int,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT sl.id,
                sl.created_at,
@@ -310,25 +398,55 @@ def user_saved_listings(user_id: int, connection=Depends(get_db)):
         WHERE sl.user_id = %s
         ORDER BY sl.created_at DESC
     """
-    rows = fetch_all(connection, query, (user_id,))
+
+    params: List = [user_id]
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
 @app.get("/users/{user_id}/searches", tags=["users"])
-def user_saved_searches(user_id: int, connection=Depends(get_db)):
+def user_saved_searches(
+    user_id: int,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT id, name, send_email, created_at, updated_at
         FROM saved_searches
         WHERE user_id = %s
         ORDER BY created_at DESC
     """
-    rows = fetch_all(connection, query, (user_id,))
+
+    params: List = [user_id]
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
 # TBD: Vet inte om denna endpoint är nödvändigt
 @app.get("/locations", tags=["properties"])
-def list_locations(city: Optional[str] = None, connection=Depends(get_db)):
+def list_locations(
+    city: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
     query = """
         SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
         FROM locations
@@ -339,6 +457,14 @@ def list_locations(city: Optional[str] = None, connection=Depends(get_db)):
         params.append(f"%{city}%")
 
     query += " ORDER BY id"
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        params.append(offset)
+
     rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
@@ -841,3 +967,147 @@ def update_saved_search(
 #########################################
 #               DELETE                  #
 #########################################
+
+
+@app.delete(
+    "/listings/{listing_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["listings"]
+)
+def delete_listing(listing_id: int, connection=Depends(get_db)):
+    cleanup_queries = [
+        "DELETE FROM listing_media WHERE listing_id = %s",
+        "DELETE FROM open_houses WHERE listing_id = %s",
+        "DELETE FROM saved_listings WHERE listing_id = %s",
+        "DELETE FROM listing_agents WHERE listing_id = %s",
+        "DELETE FROM listing_properties WHERE listing_id = %s",
+    ]
+    with connection:
+        with connection.cursor() as cursor:
+            for sql in cleanup_queries:
+                cursor.execute(sql, (listing_id,))
+            cursor.execute(
+                "DELETE FROM listings WHERE id = %s RETURNING id", (listing_id,)
+            )
+            deleted = cursor.fetchone()
+    _raise_if_not_found(deleted, "Listing")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/properties/{property_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["properties"],
+)
+def delete_property(property_id: int, connection=Depends(get_db)):
+    in_use = fetch_one(
+        connection,
+        "SELECT COUNT(*) AS count FROM listing_properties WHERE property_id = %s",
+        (property_id,),
+    )
+    if in_use and in_use["count"] > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Property is linked to listings. Remove links before deleting.",
+        )
+    deleted = execute_returning(
+        connection, "DELETE FROM properties WHERE id = %s RETURNING id", (property_id,)
+    )
+    _raise_if_not_found(deleted, "Property")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/listing-media/{media_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["listings"],
+)
+def delete_media(media_id: int, connection=Depends(get_db)):
+    deleted = execute_returning(
+        connection, "DELETE FROM listing_media WHERE id = %s RETURNING id", (media_id,)
+    )
+    _raise_if_not_found(deleted, "Listing media")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/open-houses/{open_house_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["listings"],
+)
+def delete_open_house(open_house_id: int, connection=Depends(get_db)):
+    deleted = execute_returning(
+        connection,
+        "DELETE FROM open_houses WHERE id = %s RETURNING id",
+        (open_house_id,),
+    )
+    _raise_if_not_found(deleted, "Open house")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/users/{user_id}/saved-listings/{listing_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["users"],
+)
+def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
+    deleted = execute_returning(
+        connection,
+        "DELETE FROM saved_listings WHERE user_id = %s AND listing_id = %s RETURNING id",
+        (user_id, listing_id),
+    )
+    _raise_if_not_found(deleted, "Saved listing")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/users/{user_id}/searches/{search_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["users"],
+)
+def delete_saved_search(user_id: int, search_id: int, connection=Depends(get_db)):
+    deleted = execute_returning(
+        connection,
+        "DELETE FROM saved_searches WHERE user_id = %s AND id = %s RETURNING id",
+        (user_id, search_id),
+    )
+    _raise_if_not_found(deleted, "Saved search")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/agents/{agent_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["agents"],
+)
+def delete_agent(agent_id: int, connection=Depends(get_db)):
+    execute_returning(
+        connection, "DELETE FROM agent_agencies WHERE agent_id = %s", (agent_id,)
+    )
+
+    deleted = execute_returning(
+        connection,
+        "DELETE FROM agents WHERE id = %s RETURNING id",
+        (agent_id,),
+    )
+    _raise_if_not_found(deleted, "Saved search")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete(
+    "/agencies/{agency_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["agencies"],
+)
+def delete_agency(agency_id: int, connection=Depends(get_db)):
+    execute_returning(
+        connection, "DELETE FROM agent_agencies WHERE agency_id = %s", (agency_id,)
+    )
+
+    deleted = execute_returning(
+        connection,
+        "DELETE FROM agencies WHERE id = %s RETURNING id",
+        (agency_id,),
+    )
+    _raise_if_not_found(deleted, "Saved search")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
