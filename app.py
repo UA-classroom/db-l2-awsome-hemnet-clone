@@ -18,6 +18,7 @@ from schemas import (
     LocationUpdate,
     UserUpdate,
     PropertyUpdate,
+    ListingUpdate,
 )
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
@@ -748,3 +749,49 @@ def update_property(
         return _raise_if_not_found(row, "Property")
     except IntegrityError as exc:
         _handle_error(exc, "Could not update property")
+
+
+@app.put("/listings/{listing_id}")
+def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(get_db)):
+    listing_query = """
+        UPDATE listings
+        SET agent_id = COALESCE(%s, agent_id),
+            title = %s,
+            description = COALESCE(%s, description),
+            status_id = COALESCE(%s, status_id),
+            list_price = COALESCE(%s, list_price),
+            price_type_id = COALESCE(%s, price_type_id),
+            published_at = COALESCE(%s, published_at),
+            expires_at = COALESCE(%s, expires_at),
+            external_ref = COALESCE(%s, external_ref),
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING *
+    """
+    link_query = """
+        UPDATE listing_properties SET property_id = COALESCE(%s, property_id)
+        WHERE listing_id = %s
+    """
+    try:
+        with connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    listing_query,
+                    (
+                        payload.agent_id,
+                        payload.title,
+                        payload.description,
+                        payload.status_id,
+                        payload.list_price,
+                        payload.price_type_id,
+                        payload.published_at,
+                        payload.expires_at,
+                        payload.external_ref,
+                        listing_id,
+                    ),
+                )
+                listing = cursor.fetchone()
+                cursor.execute(link_query, (payload.property_id, listing_id))
+        return _raise_if_not_found(listing, "Listing")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update listing")

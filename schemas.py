@@ -82,6 +82,19 @@ class ListingCreate(BaseModel):
     property_id: int
 
 
+class ListingUpdate(BaseModel):
+    agent_id: Optional[int] = None
+    title: str
+    description: Optional[str] = None
+    status_id: Optional[int] = None
+    list_price: Optional[float] = None
+    price_type_id: Optional[int] = None
+    published_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    external_ref: Optional[str] = None
+    property_id: Optional[int] = None
+
+
 class ListingMediaCreate(BaseModel):
     media_type_id: int
     url: str
