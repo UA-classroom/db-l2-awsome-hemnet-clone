@@ -3,7 +3,14 @@ from db import fetch_all, fetch_one, execute_returning
 from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
 from psycopg2 import OperationalError, IntegrityError
-from schemas import AddressCreate, LocationCreate, UserCreate, PropertyCreate
+from psycopg2.extras import RealDictCursor
+from schemas import (
+    AddressCreate,
+    LocationCreate,
+    UserCreate,
+    PropertyCreate,
+    ListingCreate,
+)
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
@@ -439,3 +446,46 @@ def create_property(payload: PropertyCreate, conn=Depends(get_db)):
         return row
     except IntegrityError as exc:
         _raise_if_not_found(exc, "Could not create property (check foreign keys)")
+
+
+@app.post(
+    "/listings",
+    status_code=status.HTTP_201_CREATED,
+    description="Add a property first to get the property ID",
+)
+def create_listing(payload: ListingCreate, conn=Depends(get_db)):
+    listing_query = """
+        INSERT INTO listings (
+            agent_id, title, description, status_id, list_price, price_type_id,
+            published_at, expires_at, external_ref
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    link_query = "INSERT INTO listing_properties (property_id, listing_id) VALUES (%s, %s) RETURNING listing_id, property_id"
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    listing_query,
+                    (
+                        payload.agent_id,
+                        payload.title,
+                        payload.description,
+                        payload.status_id,
+                        payload.list_price,
+                        payload.price_type_id,
+                        payload.published_at,
+                        payload.expires_at,
+                        payload.external_ref,
+                    ),
+                )
+                listing = cursor.fetchone()
+                cursor.execute(link_query, (payload.property_id, listing["id"]))
+                cursor.fetchone()
+
+                return listing
+    except IntegrityError as exc:
+        _raise_if_not_found(
+            exc,
+            "Could not create listing (check agent, status, or property references)",
+        )

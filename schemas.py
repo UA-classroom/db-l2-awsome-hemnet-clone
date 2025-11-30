@@ -1,5 +1,5 @@
 from typing import Optional
-
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -67,3 +67,16 @@ class PropertyCreate(BaseModel):
 
 class PropertyUpdate(PropertyCreate):
     pass
+
+
+class ListingCreate(BaseModel):
+    agent_id: int
+    title: str
+    description: Optional[str] = None
+    status_id: int
+    list_price: Optional[float] = None
+    price_type_id: Optional[int] = None
+    published_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    external_ref: Optional[str] = None
+    property_id: int
