@@ -15,6 +15,7 @@ from schemas import (
     SavedListingCreate,
     SavedSearchCreate,
     AddressUpdate,
+    LocationUpdate,
 )
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
@@ -620,3 +621,40 @@ def update_address(address_id: int, payload: AddressUpdate, conn=Depends(get_db)
         return _raise_if_not_found(row, "Address")
     except IntegrityError as exc:
         _handle_error(exc, "Could not update address")
+
+
+@app.put("/locations/{location_id}")
+def update_location(location_id: int, payload: LocationUpdate, conn=Depends(get_db)):
+    query = """
+        UPDATE locations
+        SET street_address = %s,
+            postal_code = %s,
+            city = %s,
+            municipality = %s,
+            county = %s,
+            country = %s,
+            latitude = %s,
+            longitude = %s
+        WHERE id = %s
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+                payload.latitude,
+                payload.longitude,
+                location_id,
+            ),
+        )
+
+        return _raise_if_not_found(row, "Location")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update location")
