@@ -1,7 +1,7 @@
 from typing import List, Optional
 from db import fetch_all, fetch_one, execute_returning
 from db_setup import get_connection, run_setup
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Response
 from psycopg2 import OperationalError, IntegrityError
 from psycopg2.extras import RealDictCursor
 from schemas import (
@@ -23,23 +23,24 @@ from schemas import (
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
+# TODO: Skapa update och delete operationer för agenter
 
 tags_metadata = [
     {
         "name": "listings",
-        "description": "Operations with listings.",
+        "description": "Operations with listings info.",
     },
     {
         "name": "properties",
-        "description": "Get property info.",
+        "description": "Operations with property info.",
     },
     {
         "name": "agents",
-        "description": "Get agents info.",
+        "description": "Operations with agents info.",
     },
     {
         "name": "users",
-        "description": "Get users info.",
+        "description": "Operations with users info.",
     },
 ]
 
@@ -80,7 +81,7 @@ def _handle_error(exc: IntegrityError, fallback: str = "Invalid data"):
 #########################################
 
 
-@app.get("/listings", tags=["listings", "GET"])
+@app.get("/listings", tags=["listings"])
 def list_listings(
     status_name: Optional[str] = None,
     city: Optional[str] = None,
@@ -136,7 +137,7 @@ def list_listings(
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/listings/{listing_id}", tags=["listings", "GET"])
+@app.get("/listings/{listing_id}", tags=["listings"])
 def listing_detail(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT l.id,
@@ -181,7 +182,7 @@ def listing_detail(listing_id: int, connection=Depends(get_db)):
     return _raise_if_not_found(row, "Listing")
 
 
-@app.get("/listings/{listing_id}/media", tags=["listings", "GET"])
+@app.get("/listings/{listing_id}/media", tags=["listings"])
 def listing_media(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT id, media_type_id, url, caption, position, updated_at
@@ -210,7 +211,7 @@ def listing_open_houses(listing_id: int, connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/properties/{property_id}", tags=["properties", "GET"])
+@app.get("/properties/{property_id}", tags=["properties"])
 def property_detail(property_id: int, connection=Depends(get_db)):
     query = """
         SELECT p.id,
@@ -234,7 +235,7 @@ def property_detail(property_id: int, connection=Depends(get_db)):
     return _raise_if_not_found(row, "Property")
 
 
-@app.get("/agents", tags=["agents", "GET"])
+@app.get("/agents", tags=["agents"])
 def list_agents(connection=Depends(get_db)):
     query = """
         SELECT a.id,
@@ -255,7 +256,7 @@ def list_agents(connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/agents/{agent_id}", tags=["agents", "GET"])
+@app.get("/agents/{agent_id}", tags=["agents"])
 def agent_detail(agent_id: int, connection=Depends(get_db)):
     query = """
         SELECT a.id,
@@ -277,7 +278,7 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
     return _raise_if_not_found(row, "Agent")
 
 
-@app.get("/users", tags=["users", "GET"])
+@app.get("/users", tags=["users"])
 def list_users(connection=Depends(get_db)):
     query = """
         SELECT u.first_name, u.last_name, u.email, ur.name AS role
@@ -288,7 +289,7 @@ def list_users(connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/users/{user_id}/saved-listings", tags=["users", "GET"])
+@app.get("/users/{user_id}/saved-listings", tags=["users"])
 def user_saved_listings(user_id: int, connection=Depends(get_db)):
     query = """
         SELECT sl.id,
@@ -313,7 +314,7 @@ def user_saved_listings(user_id: int, connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/users/{user_id}/searches", tags=["users", "GET"])
+@app.get("/users/{user_id}/searches", tags=["users"])
 def user_saved_searches(user_id: int, connection=Depends(get_db)):
     query = """
         SELECT id, name, send_email, created_at, updated_at
@@ -326,7 +327,7 @@ def user_saved_searches(user_id: int, connection=Depends(get_db)):
 
 
 # TBD: Vet inte om denna endpoint är nödvändigt
-@app.get("/locations", tags=["GET"])
+@app.get("/locations", tags=["properties"])
 def list_locations(city: Optional[str] = None, connection=Depends(get_db)):
     query = """
         SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
@@ -347,7 +348,7 @@ def list_locations(city: Optional[str] = None, connection=Depends(get_db)):
 #########################################
 
 
-@app.post("/addresses", status_code=status.HTTP_201_CREATED)
+@app.post("/addresses", status_code=status.HTTP_201_CREATED, tags=["users"])
 def create_address(payload: AddressCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO addresses (street_address, postal_code, city, municipality, county, country)
@@ -373,7 +374,7 @@ def create_address(payload: AddressCreate, connection=Depends(get_db)):
         _handle_error(exc, "Could not create address")
 
 
-@app.post("/locations", status_code=status.HTTP_201_CREATED)
+@app.post("/locations", status_code=status.HTTP_201_CREATED, tags=["properties"])
 def create_location(payload: LocationCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO locations (street_address, postal_code, city, municipality, county, country, latitude, longitude)
@@ -401,7 +402,7 @@ def create_location(payload: LocationCreate, connection=Depends(get_db)):
         _handle_error(exc, "Could not create location")
 
 
-@app.post("/users", status_code=status.HTTP_201_CREATED)
+@app.post("/users", status_code=status.HTTP_201_CREATED, tags=["users"])
 def create_user(payload: UserCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO users (email, password, first_name, last_name, phone, role_id, address_id)
@@ -428,7 +429,7 @@ def create_user(payload: UserCreate, connection=Depends(get_db)):
         _handle_error(exc, "User could not be created (email might already exist)")
 
 
-@app.post("/properties", status_code=status.HTTP_201_CREATED)
+@app.post("/properties", status_code=status.HTTP_201_CREATED, tags=["properties"])
 def create_property(payload: PropertyCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO properties (
@@ -465,6 +466,7 @@ def create_property(payload: PropertyCreate, connection=Depends(get_db)):
     "/listings",
     status_code=status.HTTP_201_CREATED,
     description="Add a property first to get the property ID",
+    tags=["listings"],
 )
 def create_listing(payload: ListingCreate, connection=Depends(get_db)):
     listing_query = """
@@ -504,7 +506,11 @@ def create_listing(payload: ListingCreate, connection=Depends(get_db)):
         )
 
 
-@app.post("/listings/{listing_id}/media", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/listings/{listing_id}/media",
+    status_code=status.HTTP_201_CREATED,
+    tags=["listings"],
+)
 def add_listing_media(
     listing_id: int, payload: ListingMediaCreate, connection=Depends(get_db)
 ):
@@ -531,7 +537,11 @@ def add_listing_media(
         _handle_error(exc, "Could not add listing media")
 
 
-@app.post("/listings/{listing_id}/open-houses", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/listings/{listing_id}/open-houses",
+    status_code=status.HTTP_201_CREATED,
+    tags=["listings"],
+)
 def add_open_house(
     listing_id: int, payload: OpenHouseCreate, connection=Depends(get_db)
 ):
@@ -558,7 +568,11 @@ def add_open_house(
         _handle_error(exc, "Could not create open house entry")
 
 
-@app.post("/users/{user_id}/saved-listings", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/users/{user_id}/saved-listings",
+    status_code=status.HTTP_201_CREATED,
+    tags=["users"],
+)
 def save_listing(user_id: int, payload: SavedListingCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO saved_listings (user_id, listing_id)
@@ -573,7 +587,9 @@ def save_listing(user_id: int, payload: SavedListingCreate, connection=Depends(g
         _handle_error(exc, "Listing already saved or invalid reference")
 
 
-@app.post("/users/{user_id}/searches", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/users/{user_id}/searches", status_code=status.HTTP_201_CREATED, tags=["users"]
+)
 def create_saved_search(
     user_id: int, payload: SavedSearchCreate, connection=Depends(get_db)
 ):
@@ -597,7 +613,7 @@ def create_saved_search(
 #########################################
 
 
-@app.put("/addresses/{address_id}")
+@app.put("/addresses/{address_id}", tags=["users"])
 def update_address(address_id: int, payload: AddressUpdate, connection=Depends(get_db)):
     query = """
         UPDATE addresses
@@ -630,7 +646,7 @@ def update_address(address_id: int, payload: AddressUpdate, connection=Depends(g
         _handle_error(exc, "Could not update address")
 
 
-@app.put("/locations/{location_id}")
+@app.put("/locations/{location_id}", tags=["properties"])
 def update_location(
     location_id: int, payload: LocationUpdate, connection=Depends(get_db)
 ):
@@ -669,7 +685,7 @@ def update_location(
         _handle_error(exc, "Could not update location")
 
 
-@app.put("/users/{user_id}")
+@app.put("/users/{user_id}", tags=["users"])
 def update_user(user_id: int, payload: UserUpdate, connection=Depends(get_db)):
     query = """
         UPDATE users
@@ -705,7 +721,7 @@ def update_user(user_id: int, payload: UserUpdate, connection=Depends(get_db)):
         _handle_error(exc, "Could not update user")
 
 
-@app.put("/properties/{property_id}")
+@app.put("/properties/{property_id}", tags=["properties"])
 def update_property(
     property_id: int, payload: PropertyUpdate, connection=Depends(get_db)
 ):
@@ -751,7 +767,7 @@ def update_property(
         _handle_error(exc, "Could not update property")
 
 
-@app.put("/listings/{listing_id}")
+@app.put("/listings/{listing_id}", tags=["listings"])
 def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(get_db)):
     listing_query = """
         UPDATE listings
@@ -797,7 +813,7 @@ def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(g
         _handle_error(exc, "Could not update listing")
 
 
-@app.put("/users/{user_id}/searches/{search_id}")
+@app.put("/users/{user_id}/searches/{search_id}", tags=["users"])
 def update_saved_search(
     user_id: int,
     search_id: int,
