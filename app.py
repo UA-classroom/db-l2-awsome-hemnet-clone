@@ -16,6 +16,7 @@ from schemas import (
     SavedSearchCreate,
     AddressUpdate,
     LocationUpdate,
+    UserUpdate,
 )
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
@@ -324,7 +325,7 @@ def user_saved_searches(user_id: int, connection=Depends(get_db)):
 
 # TBD: Vet inte om denna endpoint är nödvändigt
 @app.get("/locations", tags=["GET"])
-def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
+def list_locations(city: Optional[str] = None, connection=Depends(get_db)):
     query = """
         SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
         FROM locations
@@ -335,7 +336,7 @@ def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
         params.append(f"%{city}%")
 
     query += " ORDER BY id"
-    rows = fetch_all(conn, query, params)
+    rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
 
 
@@ -345,7 +346,7 @@ def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
 
 
 @app.post("/addresses", status_code=status.HTTP_201_CREATED)
-def create_address(payload: AddressCreate, conn=Depends(get_db)):
+def create_address(payload: AddressCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO addresses (street_address, postal_code, city, municipality, county, country)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -353,7 +354,7 @@ def create_address(payload: AddressCreate, conn=Depends(get_db)):
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 payload.street_address,
@@ -371,7 +372,7 @@ def create_address(payload: AddressCreate, conn=Depends(get_db)):
 
 
 @app.post("/locations", status_code=status.HTTP_201_CREATED)
-def create_location(payload: LocationCreate, conn=Depends(get_db)):
+def create_location(payload: LocationCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO locations (street_address, postal_code, city, municipality, county, country, latitude, longitude)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -379,7 +380,7 @@ def create_location(payload: LocationCreate, conn=Depends(get_db)):
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 payload.street_address,
@@ -399,7 +400,7 @@ def create_location(payload: LocationCreate, conn=Depends(get_db)):
 
 
 @app.post("/users", status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, conn=Depends(get_db)):
+def create_user(payload: UserCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO users (email, password, first_name, last_name, phone, role_id, address_id)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -407,7 +408,7 @@ def create_user(payload: UserCreate, conn=Depends(get_db)):
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 payload.email,
@@ -426,7 +427,7 @@ def create_user(payload: UserCreate, conn=Depends(get_db)):
 
 
 @app.post("/properties", status_code=status.HTTP_201_CREATED)
-def create_property(payload: PropertyCreate, conn=Depends(get_db)):
+def create_property(payload: PropertyCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO properties (
             location_id, property_type_id, tenure_id, year_built, living_area_sqm,
@@ -436,7 +437,7 @@ def create_property(payload: PropertyCreate, conn=Depends(get_db)):
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 payload.location_id,
@@ -463,7 +464,7 @@ def create_property(payload: PropertyCreate, conn=Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
     description="Add a property first to get the property ID",
 )
-def create_listing(payload: ListingCreate, conn=Depends(get_db)):
+def create_listing(payload: ListingCreate, connection=Depends(get_db)):
     listing_query = """
         INSERT INTO listings (
             agent_id, title, description, status_id, list_price, price_type_id,
@@ -473,8 +474,8 @@ def create_listing(payload: ListingCreate, conn=Depends(get_db)):
     """
     link_query = "INSERT INTO listing_properties (property_id, listing_id) VALUES (%s, %s) RETURNING listing_id, property_id"
     try:
-        with conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        with connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
                     listing_query,
                     (
@@ -503,7 +504,7 @@ def create_listing(payload: ListingCreate, conn=Depends(get_db)):
 
 @app.post("/listings/{listing_id}/media", status_code=status.HTTP_201_CREATED)
 def add_listing_media(
-    listing_id: int, payload: ListingMediaCreate, conn=Depends(get_db)
+    listing_id: int, payload: ListingMediaCreate, connection=Depends(get_db)
 ):
     query = """
         INSERT INTO listing_media (listing_id, media_type_id, url, caption, position)
@@ -512,7 +513,7 @@ def add_listing_media(
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 listing_id,
@@ -529,7 +530,9 @@ def add_listing_media(
 
 
 @app.post("/listings/{listing_id}/open-houses", status_code=status.HTTP_201_CREATED)
-def add_open_house(listing_id: int, payload: OpenHouseCreate, conn=Depends(get_db)):
+def add_open_house(
+    listing_id: int, payload: OpenHouseCreate, connection=Depends(get_db)
+):
     query = """
         INSERT INTO open_houses (listing_id, starts_at, ends_at, type_id, note)
         VALUES (%s, %s, %s, %s, %s)
@@ -537,7 +540,7 @@ def add_open_house(listing_id: int, payload: OpenHouseCreate, conn=Depends(get_d
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 listing_id,
@@ -554,14 +557,14 @@ def add_open_house(listing_id: int, payload: OpenHouseCreate, conn=Depends(get_d
 
 
 @app.post("/users/{user_id}/saved-listings", status_code=status.HTTP_201_CREATED)
-def save_listing(user_id: int, payload: SavedListingCreate, conn=Depends(get_db)):
+def save_listing(user_id: int, payload: SavedListingCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO saved_listings (user_id, listing_id)
         VALUES (%s, %s)
         RETURNING id, user_id, listing_id, created_at
     """
     try:
-        row = execute_returning(conn, query, (user_id, payload.listing_id))
+        row = execute_returning(connection, query, (user_id, payload.listing_id))
 
         return row
     except IntegrityError as exc:
@@ -569,7 +572,9 @@ def save_listing(user_id: int, payload: SavedListingCreate, conn=Depends(get_db)
 
 
 @app.post("/users/{user_id}/searches", status_code=status.HTTP_201_CREATED)
-def create_saved_search(user_id: int, payload: SavedSearchCreate, conn=Depends(get_db)):
+def create_saved_search(
+    user_id: int, payload: SavedSearchCreate, connection=Depends(get_db)
+):
     query = """
         INSERT INTO saved_searches (user_id, name, send_email)
         VALUES (%s, %s, %s)
@@ -577,7 +582,7 @@ def create_saved_search(user_id: int, payload: SavedSearchCreate, conn=Depends(g
     """
     try:
         row = execute_returning(
-            conn, query, (user_id, payload.name, payload.send_email)
+            connection, query, (user_id, payload.name, payload.send_email)
         )
 
         return row
@@ -591,21 +596,21 @@ def create_saved_search(user_id: int, payload: SavedSearchCreate, conn=Depends(g
 
 
 @app.put("/addresses/{address_id}")
-def update_address(address_id: int, payload: AddressUpdate, conn=Depends(get_db)):
+def update_address(address_id: int, payload: AddressUpdate, connection=Depends(get_db)):
     query = """
         UPDATE addresses
         SET street_address = %s,
             postal_code = %s,
             city = %s,
-            municipality = %s,
-            county = %s,
+            municipality = COALESCE(%s, municipality),
+            county = COALESCE(%s, county),
             country = %s
         WHERE id = %s
         RETURNING *
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 payload.street_address,
@@ -624,23 +629,25 @@ def update_address(address_id: int, payload: AddressUpdate, conn=Depends(get_db)
 
 
 @app.put("/locations/{location_id}")
-def update_location(location_id: int, payload: LocationUpdate, conn=Depends(get_db)):
+def update_location(
+    location_id: int, payload: LocationUpdate, connection=Depends(get_db)
+):
     query = """
         UPDATE locations
         SET street_address = %s,
             postal_code = %s,
             city = %s,
-            municipality = %s,
-            county = %s,
+            municipality = COALESCE(%s, municipality),
+            county = COALESCE(%s, county),
             country = %s,
-            latitude = %s,
-            longitude = %s
+            latitude = COALESCE(%s, latitude),
+            longitude = COALESCE(%s, longitude)
         WHERE id = %s
         RETURNING *
     """
     try:
         row = execute_returning(
-            conn,
+            connection,
             query,
             (
                 payload.street_address,
@@ -658,3 +665,39 @@ def update_location(location_id: int, payload: LocationUpdate, conn=Depends(get_
         return _raise_if_not_found(row, "Location")
     except IntegrityError as exc:
         _handle_error(exc, "Could not update location")
+
+
+@app.put("/users/{user_id}")
+def update_user(user_id: int, payload: UserUpdate, connection=Depends(get_db)):
+    query = """
+        UPDATE users
+        SET email = COALESCE(%s, email),
+            password = COALESCE(%s, password),
+            first_name = COALESCE(%s, first_name),
+            last_name = COALESCE(%s, last_name),
+            phone = COALESCE(%s, phone),
+            role_id = COALESCE(%s, role_id),
+            address_id = COALESCE(%s, address_id),
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING id, email, first_name, last_name, phone, role_id, address_id, created_at, updated_at
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.email,
+                payload.password,
+                payload.first_name,
+                payload.last_name,
+                payload.phone,
+                payload.role_id,
+                payload.address_id,
+                user_id,
+            ),
+        )
+
+        return _raise_if_not_found(row, "User")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update user")
