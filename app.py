@@ -3,7 +3,7 @@ from db import fetch_all, fetch_one, execute_returning
 from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
 from psycopg2 import OperationalError, IntegrityError
-from schemas import AddressCreate, LocationCreate, UserCreate
+from schemas import AddressCreate, LocationCreate, UserCreate, PropertyCreate
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
@@ -406,3 +406,36 @@ def create_user(payload: UserCreate, conn=Depends(get_db)):
         _raise_if_not_found(
             exc, "User could not be created (email might already exist)"
         )
+
+
+@app.post("/properties", status_code=status.HTTP_201_CREATED)
+def create_property(payload: PropertyCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO properties (
+            location_id, property_type_id, tenure_id, year_built, living_area_sqm,
+            additional_area_sqm, plot_area_sqm, rooms, floor, monthly_fee, energy_class
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                payload.location_id,
+                payload.property_type_id,
+                payload.tenure_id,
+                payload.year_built,
+                payload.living_area_sqm,
+                payload.additional_area_sqm,
+                payload.plot_area_sqm,
+                payload.rooms,
+                payload.floor,
+                payload.monthly_fee,
+                payload.energy_class,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Could not create property (check foreign keys)")
