@@ -51,3 +51,20 @@ def fetch_one(
         else:
             cursor.execute(query, params)
         return cursor.fetchone()
+
+
+def execute_returning(
+    con: psycopg2.extensions.connection,
+    query: str,
+    params: Optional[_SQLParams] = None,
+):
+    """
+    Executes a statement that returns data (e.g. INSERT ... RETURNING ...).
+    """
+    with con:
+        with con.cursor(cursor_factory=RealDictCursor) as cursor:
+            if params is None:
+                cursor.execute(query)
+            else:
+                cursor.execute(query, params)
+            return cursor.fetchone()

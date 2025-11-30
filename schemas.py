@@ -1,3 +1,16 @@
-# Add Pydantic schemas here that you'll use in your routes / endpoints
-# Pydantic schemas are used to validate data that you receive, or to make sure that whatever data
-# you send back to the client follows a certain structure
+from typing import Optional
+
+from pydantic import BaseModel
+
+
+class AddressCreate(BaseModel):
+    street_address: str
+    postal_code: str
+    city: str
+    municipality: Optional[str] = None
+    county: Optional[str] = None
+    country: str
+
+
+class AddressUpdate(AddressCreate):
+    pass

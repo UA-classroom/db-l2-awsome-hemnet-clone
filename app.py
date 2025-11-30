@@ -1,8 +1,9 @@
 from typing import List, Optional
-from db import fetch_all, fetch_one
+from db import fetch_all, fetch_one, execute_returning
 from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
-from psycopg2 import OperationalError
+from psycopg2 import OperationalError, IntegrityError
+from schemas import AddressCreate
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
@@ -312,3 +313,29 @@ def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
     query += " ORDER BY id"
     rows = fetch_all(conn, query, params)
     return {"count": len(rows), "items": rows}
+
+
+@app.post("/addresses", status_code=status.HTTP_201_CREATED)
+def create_address(payload: AddressCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO addresses (street_address, postal_code, city, municipality, county, country)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Could not create address")
