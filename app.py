@@ -14,6 +14,7 @@ from schemas import (
     OpenHouseCreate,
     SavedListingCreate,
     SavedSearchCreate,
+    AddressUpdate,
 )
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
@@ -62,6 +63,12 @@ def _raise_if_not_found(row, label: str):
             status_code=status.HTTP_404_NOT_FOUND, detail=f"{label} not found"
         )
     return row
+
+
+def _handle_error(exc: IntegrityError, fallback: str = "Invalid data"):
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail=fallback
+    ) from exc
 
 
 #########################################
@@ -332,7 +339,7 @@ def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
 
 
 #########################################
-#            POST                       #
+#                POST                   #
 #########################################
 
 
@@ -359,7 +366,7 @@ def create_address(payload: AddressCreate, conn=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Could not create address")
+        _handle_error(exc, "Could not create address")
 
 
 @app.post("/locations", status_code=status.HTTP_201_CREATED)
@@ -387,7 +394,7 @@ def create_location(payload: LocationCreate, conn=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Could not create location")
+        _handle_error(exc, "Could not create location")
 
 
 @app.post("/users", status_code=status.HTTP_201_CREATED)
@@ -414,9 +421,7 @@ def create_user(payload: UserCreate, conn=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(
-            exc, "User could not be created (email might already exist)"
-        )
+        _handle_error(exc, "User could not be created (email might already exist)")
 
 
 @app.post("/properties", status_code=status.HTTP_201_CREATED)
@@ -449,7 +454,7 @@ def create_property(payload: PropertyCreate, conn=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Could not create property (check foreign keys)")
+        _handle_error(exc, "Could not create property (check foreign keys)")
 
 
 @app.post(
@@ -489,7 +494,7 @@ def create_listing(payload: ListingCreate, conn=Depends(get_db)):
 
                 return listing
     except IntegrityError as exc:
-        _raise_if_not_found(
+        _handle_error(
             exc,
             "Could not create listing (check agent, status, or property references)",
         )
@@ -519,7 +524,7 @@ def add_listing_media(
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Could not add listing media")
+        _handle_error(exc, "Could not add listing media")
 
 
 @app.post("/listings/{listing_id}/open-houses", status_code=status.HTTP_201_CREATED)
@@ -544,7 +549,7 @@ def add_open_house(listing_id: int, payload: OpenHouseCreate, conn=Depends(get_d
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Could not create open house entry")
+        _handle_error(exc, "Could not create open house entry")
 
 
 @app.post("/users/{user_id}/saved-listings", status_code=status.HTTP_201_CREATED)
@@ -559,7 +564,7 @@ def save_listing(user_id: int, payload: SavedListingCreate, conn=Depends(get_db)
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Listing already saved or invalid reference")
+        _handle_error(exc, "Listing already saved or invalid reference")
 
 
 @app.post("/users/{user_id}/searches", status_code=status.HTTP_201_CREATED)
@@ -576,4 +581,42 @@ def create_saved_search(user_id: int, payload: SavedSearchCreate, conn=Depends(g
 
         return row
     except IntegrityError as exc:
-        _raise_if_not_found(exc, "Could not create saved search")
+        _handle_error(exc, "Could not create saved search")
+
+
+#########################################
+#               PUT                     #
+#########################################
+
+
+@app.put("/addresses/{address_id}")
+def update_address(address_id: int, payload: AddressUpdate, conn=Depends(get_db)):
+    query = """
+        UPDATE addresses
+        SET street_address = %s,
+            postal_code = %s,
+            city = %s,
+            municipality = %s,
+            county = %s,
+            country = %s
+        WHERE id = %s
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+                address_id,
+            ),
+        )
+
+        return _raise_if_not_found(row, "Address")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update address")
