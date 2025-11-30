@@ -131,8 +131,8 @@ CREATE TABLE users (
     last_name   VARCHAR(100),
     phone       VARCHAR(50),
     role_id     INTEGER,               
-    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     address_id  INTEGER REFERENCES addresses(id)
 );
 
@@ -159,7 +159,8 @@ CREATE TABLE agencies (
     org_number  VARCHAR(100),
     phone       VARCHAR(50),
     website     TEXT,
-    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE agents (
@@ -167,7 +168,9 @@ CREATE TABLE agents (
     user_id         INTEGER NOT NULL REFERENCES users(id),
     title           VARCHAR(100),
     license_number  VARCHAR(100),
-    bio             TEXT
+    bio             TEXT,
+	created_at  	TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	updated_at  	TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE agent_agencies (
