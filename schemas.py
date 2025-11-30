@@ -80,3 +80,26 @@ class ListingCreate(BaseModel):
     expires_at: Optional[datetime] = None
     external_ref: Optional[str] = None
     property_id: int
+
+
+class ListingMediaCreate(BaseModel):
+    media_type_id: int
+    url: str
+    caption: Optional[str] = None
+    position: Optional[int] = None
+
+
+class OpenHouseCreate(BaseModel):
+    starts_at: datetime
+    ends_at: Optional[datetime] = None
+    type_id: int
+    note: Optional[str] = None
+
+
+class SavedListingCreate(BaseModel):
+    listing_id: int
+
+
+class SavedSearchCreate(BaseModel):
+    name: str
+    send_email: bool = False

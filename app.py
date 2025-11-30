@@ -10,6 +10,10 @@ from schemas import (
     UserCreate,
     PropertyCreate,
     ListingCreate,
+    ListingMediaCreate,
+    OpenHouseCreate,
+    SavedListingCreate,
+    SavedSearchCreate,
 )
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
@@ -489,3 +493,87 @@ def create_listing(payload: ListingCreate, conn=Depends(get_db)):
             exc,
             "Could not create listing (check agent, status, or property references)",
         )
+
+
+@app.post("/listings/{listing_id}/media", status_code=status.HTTP_201_CREATED)
+def add_listing_media(
+    listing_id: int, payload: ListingMediaCreate, conn=Depends(get_db)
+):
+    query = """
+        INSERT INTO listing_media (listing_id, media_type_id, url, caption, position)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                listing_id,
+                payload.media_type_id,
+                payload.url,
+                payload.caption,
+                payload.position,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Could not add listing media")
+
+
+@app.post("/listings/{listing_id}/open-houses", status_code=status.HTTP_201_CREATED)
+def add_open_house(listing_id: int, payload: OpenHouseCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO open_houses (listing_id, starts_at, ends_at, type_id, note)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                listing_id,
+                payload.starts_at,
+                payload.ends_at,
+                payload.type_id,
+                payload.note,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Could not create open house entry")
+
+
+@app.post("/users/{user_id}/saved-listings", status_code=status.HTTP_201_CREATED)
+def save_listing(user_id: int, payload: SavedListingCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO saved_listings (user_id, listing_id)
+        VALUES (%s, %s)
+        RETURNING id, user_id, listing_id, created_at
+    """
+    try:
+        row = execute_returning(conn, query, (user_id, payload.listing_id))
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Listing already saved or invalid reference")
+
+
+@app.post("/users/{user_id}/searches", status_code=status.HTTP_201_CREATED)
+def create_saved_search(user_id: int, payload: SavedSearchCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO saved_searches (user_id, name, send_email)
+        VALUES (%s, %s, %s)
+        RETURNING id, user_id, name, send_email, created_at, updated_at
+    """
+    try:
+        row = execute_returning(
+            conn, query, (user_id, payload.name, payload.send_email)
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Could not create saved search")
