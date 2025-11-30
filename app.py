@@ -3,7 +3,7 @@ from db import fetch_all, fetch_one, execute_returning
 from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
 from psycopg2 import OperationalError, IntegrityError
-from schemas import AddressCreate
+from schemas import AddressCreate, LocationCreate
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
@@ -51,6 +51,11 @@ def _raise_if_not_found(row, label: str):
             status_code=status.HTTP_404_NOT_FOUND, detail=f"{label} not found"
         )
     return row
+
+
+#########################################
+#               GET                     #
+#########################################
 
 
 @app.get("/listings", tags=["listings"])
@@ -315,6 +320,11 @@ def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
+#########################################
+#            POST                       #
+#########################################
+
+
 @app.post("/addresses", status_code=status.HTTP_201_CREATED)
 def create_address(payload: AddressCreate, conn=Depends(get_db)):
     query = """
@@ -339,3 +349,31 @@ def create_address(payload: AddressCreate, conn=Depends(get_db)):
         return row
     except IntegrityError as exc:
         _raise_if_not_found(exc, "Could not create address")
+
+
+@app.post("/locations", status_code=status.HTTP_201_CREATED)
+def create_location(payload: LocationCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO locations (street_address, postal_code, city, municipality, county, country, latitude, longitude)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+                payload.latitude,
+                payload.longitude,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(exc, "Could not create location")
