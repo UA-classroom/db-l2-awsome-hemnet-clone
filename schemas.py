@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 
 class AddressCreate(BaseModel):
@@ -29,3 +29,13 @@ class LocationCreate(BaseModel):
 
 class LocationUpdate(LocationCreate):
     pass
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    role_id: Optional[int] = None
+    address_id: Optional[int] = None

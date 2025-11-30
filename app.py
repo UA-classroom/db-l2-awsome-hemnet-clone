@@ -3,7 +3,7 @@ from db import fetch_all, fetch_one, execute_returning
 from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status
 from psycopg2 import OperationalError, IntegrityError
-from schemas import AddressCreate, LocationCreate
+from schemas import AddressCreate, LocationCreate, UserCreate
 
 # TODO: Läg till LIMIT som options på de som kan ha fler än ett resultat
 # TODO: Lägg även till OFFSET på de som har LIMIT
@@ -58,7 +58,7 @@ def _raise_if_not_found(row, label: str):
 #########################################
 
 
-@app.get("/listings", tags=["listings"])
+@app.get("/listings", tags=["listings", "GET"])
 def list_listings(
     status_name: Optional[str] = None,
     city: Optional[str] = None,
@@ -114,7 +114,7 @@ def list_listings(
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/listings/{listing_id}", tags=["listings"])
+@app.get("/listings/{listing_id}", tags=["listings", "GET"])
 def listing_detail(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT l.id,
@@ -159,7 +159,7 @@ def listing_detail(listing_id: int, connection=Depends(get_db)):
     return _raise_if_not_found(row, "Listing")
 
 
-@app.get("/listings/{listing_id}/media", tags=["listings"])
+@app.get("/listings/{listing_id}/media", tags=["listings", "GET"])
 def listing_media(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT id, media_type_id, url, caption, position, updated_at
@@ -188,7 +188,7 @@ def listing_open_houses(listing_id: int, connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/properties/{property_id}", tags=["properties"])
+@app.get("/properties/{property_id}", tags=["properties", "GET"])
 def property_detail(property_id: int, connection=Depends(get_db)):
     query = """
         SELECT p.id,
@@ -212,7 +212,7 @@ def property_detail(property_id: int, connection=Depends(get_db)):
     return _raise_if_not_found(row, "Property")
 
 
-@app.get("/agents", tags=["agents"])
+@app.get("/agents", tags=["agents", "GET"])
 def list_agents(connection=Depends(get_db)):
     query = """
         SELECT a.id,
@@ -233,7 +233,7 @@ def list_agents(connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/agents/{agent_id}", tags=["agents"])
+@app.get("/agents/{agent_id}", tags=["agents", "GET"])
 def agent_detail(agent_id: int, connection=Depends(get_db)):
     query = """
         SELECT a.id,
@@ -255,7 +255,7 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
     return _raise_if_not_found(row, "Agent")
 
 
-@app.get("/users", tags=["users"])
+@app.get("/users", tags=["users", "GET"])
 def list_users(connection=Depends(get_db)):
     query = """
         SELECT u.first_name, u.last_name, u.email, ur.name AS role
@@ -266,7 +266,7 @@ def list_users(connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/users/{user_id}/saved-listings", tags=["users"])
+@app.get("/users/{user_id}/saved-listings", tags=["users", "GET"])
 def user_saved_listings(user_id: int, connection=Depends(get_db)):
     query = """
         SELECT sl.id,
@@ -291,7 +291,7 @@ def user_saved_listings(user_id: int, connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@app.get("/users/{user_id}/searches", tags=["users"])
+@app.get("/users/{user_id}/searches", tags=["users", "GET"])
 def user_saved_searches(user_id: int, connection=Depends(get_db)):
     query = """
         SELECT id, name, send_email, created_at, updated_at
@@ -304,7 +304,7 @@ def user_saved_searches(user_id: int, connection=Depends(get_db)):
 
 
 # TBD: Vet inte om denna endpoint är nödvändigt
-@app.get("/locations")
+@app.get("/locations", tags=["GET"])
 def list_locations(city: Optional[str] = None, conn=Depends(get_db)):
     query = """
         SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
@@ -377,3 +377,32 @@ def create_location(payload: LocationCreate, conn=Depends(get_db)):
         return row
     except IntegrityError as exc:
         _raise_if_not_found(exc, "Could not create location")
+
+
+@app.post("/users", status_code=status.HTTP_201_CREATED)
+def create_user(payload: UserCreate, conn=Depends(get_db)):
+    query = """
+        INSERT INTO users (email, password, first_name, last_name, phone, role_id, address_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, email, first_name, last_name, phone, role_id, address_id, created_at, updated_at
+    """
+    try:
+        row = execute_returning(
+            conn,
+            query,
+            (
+                payload.email,
+                payload.password,
+                payload.first_name,
+                payload.last_name,
+                payload.phone,
+                payload.role_id,
+                payload.address_id,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        _raise_if_not_found(
+            exc, "User could not be created (email might already exist)"
+        )
