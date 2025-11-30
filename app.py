@@ -358,6 +358,7 @@ def list_agencies(
                phone,
                website
         FROM agencies
+        ORDER BY name
     """
 
     params: List = []
@@ -371,6 +372,22 @@ def list_agencies(
 
     rows = fetch_all(connection, query, params)
     return {"count": len(rows), "items": rows}
+
+
+@app.get("/agencies/{agency_id}", tags=["agencies"])
+def agencies_datail(agency_id: int, connection=Depends(get_db)):
+    query = """
+        SELECT id,
+               name,
+               org_number,
+               phone,
+               website
+        FROM agencies
+        WHERE id = %s
+    """
+
+    row = fetch_one(connection, query, (agency_id,))
+    return _raise_if_not_found(row, "Agencies")
 
 
 @app.get("/users", tags=["users"])
