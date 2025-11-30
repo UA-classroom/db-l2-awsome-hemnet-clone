@@ -1,5 +1,5 @@
 from typing import List, Optional
-from db import fetch_all, fetch_one, execute_returning
+from db import fetch_all, fetch_one, execute_returning, execute_with_row_count
 from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status, Response
 from psycopg2 import OperationalError, IntegrityError
@@ -19,7 +19,10 @@ from schemas import (
     UserUpdate,
     PropertyUpdate,
     ListingUpdate,
-    SavedAgencyCreate,
+    AgencyCreate,
+    AgencyUpdate,
+    AgentCreate,
+    AgentUpdate,
 )
 
 
@@ -777,8 +780,40 @@ def create_saved_search(
         _handle_error(exc, "Could not create saved search")
 
 
+@app.post("/agents/{agency_id}", status_code=status.HTTP_201_CREATED, tags=["agents"])
+def create_agent(payload: AgentCreate, connection=Depends(get_db)):
+    query = """
+        INSERT INTO agents (user_id, title, license_number, bio, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        RETURNING id, user_id, title, license_number, bio, created_at
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (payload.user_id, payload.title, payload.license_number, payload.bio),
+        )
+
+        if row is not None and payload.agency_id is not None:
+            execute_with_row_count(
+                connection,
+                """agent_id: int,
+                    INSERT INTO agent_agencies (agency_id, agent_id)
+                    VALUES (%s, %s)
+                """,
+                (
+                    payload.agency_id,
+                    row["id"],
+                ),
+            )
+
+        return row
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not create agent")
+
+
 @app.post("/agencies", status_code=status.HTTP_201_CREATED, tags=["agencies"])
-def create_agency(payload: SavedAgencyCreate, connection=Depends(get_db)):
+def create_agency(payload: AgencyCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO agencies (name, org_number, phone, website, created_at)
         VALUES (%s, %s, %s, %s, NOW())
@@ -1024,6 +1059,80 @@ def update_saved_search(
         return _raise_if_not_found(row, "Saved search")
     except IntegrityError as exc:
         _handle_error(exc, "Could not update saved search")
+
+
+@app.put("/agents/{agent_id}", tags=["agents"])
+def update_agent(agent_id: int, payload: AgentUpdate, connection=Depends(get_db)):
+    query = """
+        UPDATE agents
+        SET user_id = COALESCE(%s, user_id),
+            title = COALESCE(%s, title),
+            license_number = COALESCE(%s, license_number),
+            bio = COALESCE(%s, bio),
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING id, user_id, title, license_number, bio, created_at, updated_at
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.user_id,
+                payload.title,
+                payload.license_number,
+                payload.bio,
+                agent_id,
+            ),
+        )
+
+        if row is not None and payload.agency_id is not None:
+            execute_with_row_count(
+                connection,
+                """
+                    UPDATE agent_agencies 
+                    SET agency_id = %s 
+                    WHERE agent_id = %s 
+                """,
+                (
+                    payload.agency_id,
+                    agent_id,
+                ),
+            )
+
+        return _raise_if_not_found(row, "Saved search")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update agent")
+
+
+@app.put("/agenies/{agency_id}", tags=["agencies"])
+def update_agency(agency_id: int, payload: AgencyUpdate, connection=Depends(get_db)):
+    query = """
+        UPDATE agencies
+        SET name = COALESCE(%s, name),
+            org_number = COALESCE(%s, org_number),
+            phone = COALESCE(%s, phone),
+            website = COALESCE(%s, website),
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING id, name, org_number, phone, website, created_at, updated_at
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.name,
+                payload.org_number,
+                payload.phone,
+                payload.website,
+                agency_id,
+            ),
+        )
+
+        return _raise_if_not_found(row, "Saved search")
+    except IntegrityError as exc:
+        _handle_error(exc, "Could not update agency")
 
 
 #########################################

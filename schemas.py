@@ -118,8 +118,31 @@ class SavedSearchCreate(BaseModel):
     send_email: bool = False
 
 
-class SavedAgencyCreate(BaseModel):
+class AgencyCreate(BaseModel):
     name: str
     org_number: Optional[str] = None
     phone: Optional[str] = None
     website: Optional[str] = None
+
+
+class AgencyUpdate(BaseModel):
+    name: Optional[str] = None
+    org_number: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+
+
+class AgentCreate(BaseModel):
+    user_id: int
+    agency_id: Optional[int] = None
+    title: Optional[str] = None
+    license_number: Optional[str] = None
+    bio: Optional[str] = None
+
+
+class AgentUpdate(BaseModel):
+    user_id: Optional[int] = None
+    agency_id: Optional[int] = None
+    title: Optional[str] = None
+    license_number: Optional[str] = None
+    bio: Optional[str] = None
