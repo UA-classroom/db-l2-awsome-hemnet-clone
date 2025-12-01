@@ -106,6 +106,11 @@ export function SearchResultsPage() {
     setFilters((prev) => ({ ...prev, location: value }))
   }
 
+  const handleSavedSearchSelect = (searchName: string) => {
+    if (!searchName) return
+    applySearch(searchName)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 md:flex-row md:items-center md:justify-between">
@@ -147,11 +152,17 @@ export function SearchResultsPage() {
             {savedSearches.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {savedSearches.map((item) => (
-                  <span
+                  <div
                     key={item.id}
                     className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
                   >
-                    {item.name}
+                    <button
+                      className="text-left text-slate-700 transition hover:text-emerald-700"
+                      type="button"
+                      onClick={() => handleSavedSearchSelect(item.name)}
+                    >
+                      {item.name}
+                    </button>
                     <button
                       aria-label="Delete saved search"
                       className="text-slate-400 transition hover:text-emerald-700"
@@ -160,7 +171,7 @@ export function SearchResultsPage() {
                     >
                       ×
                     </button>
-                  </span>
+                  </div>
                 ))}
               </div>
             )}
