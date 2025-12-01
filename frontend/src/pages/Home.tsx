@@ -1,16 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { fetchProperties } from '../api/client'
 import { PropertyCard } from '../components/PropertyCard'
 import { SearchBar } from '../components/SearchBar'
 import { useFavorites } from '../context/FavoritesContext'
-import { mockProperties } from '../data/mockProperties'
+import type { Property } from '../types'
 
 export function HomePage() {
   const navigate = useNavigate()
   const { favorites, toggle } = useFavorites()
   const [search, setSearch] = useState('Stockholm')
+  const [featured, setFeatured] = useState<Property[]>([])
 
-  const featured = mockProperties.slice(0, 3)
+  useEffect(() => {
+    fetchProperties({ limit: 6, status: 'for_sale' }).then((data) => setFeatured(data.slice(0, 3)))
+  }, [])
 
   const goToSearch = () => navigate(`/search?location=${encodeURIComponent(search)}`)
 
@@ -62,7 +66,7 @@ export function HomePage() {
           </Link>
         </div>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {mockProperties.map((property) => (
+          {featured.map((property) => (
             <PropertyCard
               key={property.id}
               isFavorite={favorites.has(property.id)}
@@ -70,6 +74,9 @@ export function HomePage() {
               property={property}
             />
           ))}
+          {featured.length === 0 && (
+            <p className="text-sm text-slate-600">No listings available yet. Try again shortly.</p>
+          )}
         </div>
       </section>
     </div>

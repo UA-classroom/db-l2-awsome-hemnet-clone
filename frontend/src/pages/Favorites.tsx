@@ -1,11 +1,41 @@
 import { HeartIcon } from '@heroicons/react/24/outline'
+import { useEffect, useState } from 'react'
+import { fetchListingMedia, fetchProperty } from '../api/client'
 import { PropertyCard } from '../components/PropertyCard'
 import { useFavorites } from '../context/FavoritesContext'
-import { mockProperties } from '../data/mockProperties'
+import type { Property } from '../types'
 
 export function FavoritesPage() {
   const { favorites, toggle } = useFavorites()
-  const saved = mockProperties.filter((property) => favorites.has(property.id))
+  const [saved, setSaved] = useState<Property[]>([])
+
+  useEffect(() => {
+    if (favorites.size === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSaved([])
+      return
+    }
+
+    let cancelled = false
+    Promise.all(
+      Array.from(favorites).map(async (id) => {
+        const property = await fetchProperty(id)
+        if (!property) return null
+        const media = await fetchListingMedia(id)
+        if (media.length > 0) {
+          return { ...property, image: media[0], images: media }
+        }
+        return property
+      }),
+    ).then((items) => {
+      if (cancelled) return
+      setSaved(items.filter(Boolean) as Property[])
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [favorites])
 
   return (
     <div className="space-y-4">

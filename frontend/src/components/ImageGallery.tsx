@@ -11,7 +11,7 @@ export function ImageGallery({ images }: { images: string[] }) {
       <div className="flex gap-3 overflow-x-auto pb-1">
         {images.map((src, index) => (
           <button
-            key={src}
+            key={index}
             className={`h-20 w-28 flex-shrink-0 overflow-hidden rounded-xl border transition ${index === active ? 'border-emerald-500' : 'border-slate-100 hover:border-emerald-200'}`}
             onClick={() => setActive(index)}
             type="button"

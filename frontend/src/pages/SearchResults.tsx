@@ -1,38 +1,102 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { createSavedSearch, deleteSavedSearch, fetchProperties, fetchSavedSearches } from '../api/client'
 import type { FilterState } from '../components/FiltersSidebar'
 import { FiltersSidebar } from '../components/FiltersSidebar'
 import { PropertyCard } from '../components/PropertyCard'
 import { SearchBar } from '../components/SearchBar'
 import { useFavorites } from '../context/FavoritesContext'
-import { mockProperties } from '../data/mockProperties'
+import type { Property } from '../types'
+import type { SavedSearch } from '../api/client'
 
 const defaultFilters: FilterState = {
   location: '',
   price: [2000000, 9000000],
   minRooms: 0,
+  maxRooms: Infinity,
   propertyTypes: [],
+  status: 'for_sale',
 }
 
 export function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { favorites, toggle } = useFavorites()
+  const [results, setResults] = useState<Property[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
+  const [saveName, setSaveName] = useState('')
+  const [sendEmail, setSendEmail] = useState(true)
   const [filters, setFilters] = useState<FilterState>({
     ...defaultFilters,
     location: searchParams.get('location') ?? '',
   })
+  const userId = '1' // TODO: replace with auth user
 
-  const filtered = useMemo(() => {
-    return mockProperties.filter((property) => {
-      const matchLocation = filters.location
-        ? property.address.toLowerCase().includes(filters.location.toLowerCase())
-        : true
-      const matchPrice = property.price >= filters.price[0] && property.price <= filters.price[1]
-      const matchRooms = filters.minRooms === 0 || property.rooms >= filters.minRooms
-      const matchType = filters.propertyTypes.length === 0 || filters.propertyTypes.includes(property.type)
-      return matchLocation && matchPrice && matchRooms && matchType
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    fetchProperties({
+      location: filters.location,
+      minPrice: filters.price[0],
+      maxPrice: filters.price[1],
+      minRooms: filters.minRooms,
+      maxRooms: filters.maxRooms,
+      propertyTypes: filters.propertyTypes,
+      status: filters.status,
     })
+      .then((data) => {
+        if (cancelled) return
+        setResults(data)
+      })
+      .catch((err) => {
+        console.error(err)
+        if (cancelled) return
+        setError('Could not load listings from API.')
+        setResults([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [filters])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSavedSearches(userId, 20, 0).then((items) => {
+      if (!cancelled) setSavedSearches(items)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  const addSavedSearch = async () => {
+    const name = saveName.trim() || filters.location || 'All listings'
+    try {
+      const created = await createSavedSearch(userId, { name, send_email: sendEmail })
+      setSavedSearches((prev) => [{ ...created, id: String(created.id) }, ...prev])
+      setSaveName('')
+    } catch (err) {
+      console.error('Failed to save search', err)
+      setError('Could not save this search.')
+    }
+  }
+
+  const removeSavedSearch = async (id: string) => {
+    try {
+      await deleteSavedSearch(userId, id)
+      setSavedSearches((prev) => prev.filter((item) => item.id !== id))
+    } catch (err) {
+      console.error('Failed to delete saved search', err)
+      setError('Could not delete saved search.')
+    }
+  }
 
   const applySearch = (value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -56,12 +120,59 @@ export function SearchResultsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between text-sm text-slate-600">
             <span>
-              Showing {filtered.length} of {mockProperties.length} listings
+              {loading ? 'Loading listings…' : `Showing ${results.length} listings`}
             </span>
             <span className="rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700">URL synced</span>
           </div>
+          <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                className="flex-1 min-w-0 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Name this search"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
+              <label className="flex items-center gap-2 text-xs text-slate-600">
+                <input
+                  checked={sendEmail}
+                  className="accent-emerald-600"
+                  type="checkbox"
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                />
+                Email alerts
+              </label>
+              <button
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                type="button"
+                onClick={addSavedSearch}
+              >
+                Save search
+              </button>
+            </div>
+            {savedSearches.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {savedSearches.map((item) => (
+                  <span
+                    key={item.id}
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    {item.name}
+                    <button
+                      aria-label="Delete saved search"
+                      className="text-slate-400 transition hover:text-emerald-700"
+                      type="button"
+                      onClick={() => removeSavedSearch(item.id)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((property) => (
+            {results.map((property) => (
               <PropertyCard
                 key={property.id}
                 isFavorite={favorites.has(property.id)}
@@ -70,6 +181,9 @@ export function SearchResultsPage() {
               />
             ))}
           </div>
+          {!loading && !error && results.length === 0 && (
+            <p className="text-sm text-slate-600">No listings match these filters.</p>
+          )}
         </div>
       </div>
     </div>

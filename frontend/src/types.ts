@@ -15,8 +15,6 @@ export type Property = {
   }
   tags?: string[]
   isFavorite?: boolean
-  coordinates?: {
-    lat: number
-    lng: number
-  }
+  status?: string
+  image_url?: string
 }
