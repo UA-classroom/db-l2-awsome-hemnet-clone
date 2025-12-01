@@ -109,10 +109,6 @@ class OpenHouseCreate(BaseModel):
     note: Optional[str] = None
 
 
-class SavedListingCreate(BaseModel):
-    listing_id: int
-
-
 class SavedSearchCreate(BaseModel):
     name: str
     send_email: bool = False

@@ -4,6 +4,7 @@ from db_setup import get_connection, run_setup
 from fastapi import FastAPI, HTTPException, Depends, status, Response
 from psycopg2 import OperationalError, IntegrityError
 from psycopg2.extras import RealDictCursor
+from fastapi.middleware.cors import CORSMiddleware
 from schemas import (
     AddressCreate,
     LocationCreate,
@@ -12,7 +13,6 @@ from schemas import (
     ListingCreate,
     ListingMediaCreate,
     OpenHouseCreate,
-    SavedListingCreate,
     SavedSearchCreate,
     AddressUpdate,
     LocationUpdate,
@@ -47,6 +47,16 @@ tags_metadata = [
 ]
 
 app = FastAPI(title="Hemnet Clone API", version="1.0.0", openapi_tags=tags_metadata)
+
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 run_setup()
 
@@ -103,10 +113,18 @@ def list_listings(
                pt.name AS property_type,
                p.rooms,
                p.living_area_sqm,
-               loc.city
+               loc.city,
+               lm.url AS image
         FROM listings l
         JOIN listing_status ls ON l.status_id = ls.id
         JOIN listing_properties lp ON l.id = lp.listing_id
+        LEFT JOIN listing_media lm ON l.id = lm.listing_id 
+            AND lm.media_type_id = 1
+            AND lm.id = (
+                SELECT MIN(id) 
+                FROM listing_media 
+                WHERE listing_id = l.id AND media_type_id = 1
+            )
         JOIN properties p ON lp.property_id = p.id
         JOIN property_types pt ON p.property_type_id = pt.id
         JOIN locations loc ON p.location_id = loc.id
@@ -253,12 +271,7 @@ def listing_open_houses(
 
 
 @app.get("/properties/{property_id}", tags=["properties"])
-def property_detail(
-    property_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    connection=Depends(get_db),
-):
+def property_detail(property_id: int, connection=Depends(get_db)):
     query = """
         SELECT p.id,
                p.location_id,
@@ -278,16 +291,7 @@ def property_detail(
         WHERE p.id = %s
     """
 
-    params: List = [property_id]
-
-    if limit is not None:
-        query += " LIMIT %s"
-        params.append(limit)
-    if offset is not None:
-        query += " OFFSET %s"
-        params.append(offset)
-
-    row = fetch_one(connection, query, params)
+    row = fetch_one(connection, query, (property_id,))
     return _raise_if_not_found(row, "Property")
 
 
@@ -745,14 +749,14 @@ def add_open_house(
     status_code=status.HTTP_201_CREATED,
     tags=["users"],
 )
-def save_listing(user_id: int, payload: SavedListingCreate, connection=Depends(get_db)):
+def save_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
     query = """
         INSERT INTO saved_listings (user_id, listing_id)
         VALUES (%s, %s)
         RETURNING id, user_id, listing_id, created_at
     """
     try:
-        row = execute_returning(connection, query, (user_id, payload.listing_id))
+        row = execute_returning(connection, query, (user_id, listing_id))
 
         return row
     except IntegrityError as exc:
