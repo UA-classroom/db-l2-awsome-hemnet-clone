@@ -19,6 +19,10 @@ type Props = {
 const propertyTypeOptions = [
   { label: 'Apartment', value: 'apartment' },
   { label: 'House', value: 'house' },
+  { label: 'Townhouse', value: 'townhouse' },
+  { label: 'Vacation home', value: 'vacation_home' },
+  { label: 'Farm', value: 'farm' },
+  { label: 'Other', value: 'other' },
 ]
 
 export function FiltersSidebar({ filters, onChange }: Props) {

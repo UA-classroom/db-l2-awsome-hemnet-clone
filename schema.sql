@@ -41,7 +41,6 @@ INSERT INTO property_types (name) VALUES
 ('house'),
 ('townhouse'),
 ('vacation_home'),
-('plot'),
 ('farm'),
 ('other');
 

@@ -101,6 +101,7 @@ def list_listings(
     max_price: Optional[float] = None,
     min_rooms: Optional[float] = None,
     max_rooms: Optional[float] = None,
+    property_type: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     connection=Depends(get_db),
@@ -150,6 +151,11 @@ def list_listings(
     if max_rooms is not None:
         conditions.append("p.rooms <= %s")
         params.append(max_rooms)
+    if property_type is not None:
+        types = [t.strip() for t in property_type.split(",")]
+        placeholders = ", ".join(["%s"] * len(types))
+        conditions.append(f"pt.name IN ({placeholders})")
+        params.extend(types)
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
