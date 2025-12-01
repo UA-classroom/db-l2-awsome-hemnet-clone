@@ -48,6 +48,11 @@ export type SavedSearch = {
   updated_at?: string
 }
 
+type AutocompleteResponse = {
+  items?: { title?: string }[]
+  count?: number
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
@@ -108,6 +113,26 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
     return items.map(normalizeProperty)
   } catch (error) {
     console.error('Failed to fetch properties', error)
+    return []
+  }
+}
+
+export async function fetchAutocomplete(searchTerm: string, signal?: AbortSignal): Promise<string[]> {
+  const trimmed = searchTerm.trim()
+  if (!trimmed) {
+    return []
+  }
+
+  const params = new URLSearchParams({ search_term: trimmed })
+
+  try {
+    const data = await fetchJson<AutocompleteResponse>(`/autocomplete?${params.toString()}`, { signal })
+    return (data.items ?? []).map((item) => item.title).filter((title): title is string => Boolean(title))
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error
+    }
+    console.error('Failed to fetch autocomplete suggestions', error)
     return []
   }
 }

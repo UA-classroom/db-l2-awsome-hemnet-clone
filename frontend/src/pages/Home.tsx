@@ -9,7 +9,7 @@ import type { Property } from '../types'
 export function HomePage() {
   const navigate = useNavigate()
   const { favorites, toggle } = useFavorites()
-  const [search, setSearch] = useState('Stockholm')
+  const [search, setSearch] = useState('')
   const [featured, setFeatured] = useState<Property[]>([])
 
   useEffect(() => {

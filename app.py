@@ -93,6 +93,24 @@ def _handle_error(exc: IntegrityError, fallback: str = "Invalid data"):
 #########################################
 
 
+@app.get("/autocomplete")
+def autocomplete_headings(search_term: str, connection=Depends(get_db)):
+    query = """
+        SELECT DISTINCT l.title
+        FROM listings l
+        JOIN listing_properties lp ON l.id = lp.listing_id
+        JOIN properties p ON lp.property_id = p.id
+        JOIN locations loc ON p.location_id = loc.id
+        WHERE l.title ILIKE %s OR loc.city ILIKE %s
+        ORDER BY l.title
+        LIMIT 10
+    """
+
+    like_term = f"{search_term}%"
+    rows = fetch_all(connection, query, (like_term, like_term))
+    return {"count": len(rows), "items": rows}
+
+
 @app.get("/listings", tags=["listings"])
 def list_listings(
     status_name: Optional[str] = None,

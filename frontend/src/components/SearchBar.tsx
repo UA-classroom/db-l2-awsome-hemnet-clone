@@ -1,7 +1,6 @@
 import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/24/outline'
-import { useMemo, useState } from 'react'
-
-const suggestions = ['Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Västerås']
+import { useEffect, useState } from 'react'
+import { fetchAutocomplete } from '../api/client'
 
 type Props = {
   value: string
@@ -11,11 +10,33 @@ type Props = {
 
 export function SearchBar({ value, onChange, onSubmit }: Props) {
   const [open, setOpen] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
 
-  const filtered = useMemo(
-    () => suggestions.filter((item) => item.toLowerCase().includes(value.toLowerCase())).slice(0, 5),
-    [value],
-  )
+  useEffect(() => {
+    if (!value.trim()) {
+      setSuggestions([])
+      return
+    }
+
+    let isActive = true
+    const controller = new AbortController()
+    const timeout = setTimeout(() => {
+      fetchAutocomplete(value, controller.signal)
+        .then((items) => {
+          if (isActive) setSuggestions(items.slice(0, 10))
+        })
+        .catch((error) => {
+          if (error instanceof Error && error.name === 'AbortError') return
+          if (isActive) setSuggestions([])
+        })
+    }, 200)
+
+    return () => {
+      isActive = false
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [value])
 
   return (
     <div className="relative w-full max-w-3xl">
@@ -42,10 +63,10 @@ export function SearchBar({ value, onChange, onSubmit }: Props) {
           Search
         </button>
       </div>
-      {open && filtered.length > 0 && (
+      {open && suggestions.length > 0 && (
         <div className="absolute left-0 right-0 z-10 mt-2 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg">
           <ul className="divide-y divide-slate-100">
-            {filtered.map((item) => (
+            {suggestions.map((item) => (
               <li key={item}>
                 <button
                   className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
