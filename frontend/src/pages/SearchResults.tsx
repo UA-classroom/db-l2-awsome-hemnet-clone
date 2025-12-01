@@ -25,7 +25,6 @@ export function SearchResultsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
-  const [saveName, setSaveName] = useState('')
   const [sendEmail, setSendEmail] = useState(true)
   const [filters, setFilters] = useState<FilterState>({
     ...defaultFilters,
@@ -77,11 +76,13 @@ export function SearchResultsPage() {
   }, [userId])
 
   const addSavedSearch = async () => {
-    const name = saveName.trim() || filters.location || 'All listings'
+    if (filters.location === null) {
+      return;
+    }
+    const name = filters.location
     try {
       const created = await createSavedSearch(userId, { name, send_email: sendEmail })
       setSavedSearches((prev) => [{ ...created, id: String(created.id) }, ...prev])
-      setSaveName('')
     } catch (err) {
       console.error('Failed to save search', err)
       setError('Could not save this search.')
@@ -126,12 +127,6 @@ export function SearchResultsPage() {
           </div>
           <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
             <div className="flex flex-wrap items-center gap-3">
-              <input
-                className="flex-1 min-w-0 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Name this search"
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-              />
               <label className="flex items-center gap-2 text-xs text-slate-600">
                 <input
                   checked={sendEmail}
