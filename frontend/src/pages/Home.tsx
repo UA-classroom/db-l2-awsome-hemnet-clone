@@ -29,7 +29,7 @@ export function HomePage() {
               Find bright Scandinavian homes with confidence.
             </h1>
             <p className="text-lg text-slate-600">
-              Search curated listings, track favorites, and explore details powered by the FastAPI backend at 127.1.1.1:8000.
+              Search curated listings, track favorites, and explore details powered by the homeless.
             </p>
             <SearchBar
               value={search}

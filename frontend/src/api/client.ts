@@ -1,6 +1,6 @@
 import type { Property } from '../types'
 
-const BASE_URL = 'http://127.1.1.1:8000'
+const BASE_URL = 'http://127.0.0.1:8000'
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1200&q=80'
 
 type ApiProperty = {

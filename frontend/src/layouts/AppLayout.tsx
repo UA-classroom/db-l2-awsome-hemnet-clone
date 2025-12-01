@@ -2,8 +2,7 @@ import { HeartIcon, HomeIcon } from '@heroicons/react/24/outline'
 import { Link, NavLink } from 'react-router-dom'
 
 const navClasses = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-    isActive ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700 hover:bg-slate-100'
+  `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${isActive ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700 hover:bg-slate-100'
   }`
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -29,7 +28,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
       <main className="mx-auto max-w-6xl px-5 py-8 lg:py-12">{children}</main>
       <footer className="border-t border-slate-100 bg-white/80 py-6 text-center text-sm text-slate-500">
-        Built with React, Tailwind, and FastAPI backend at 127.1.1.1:8000
+        Built with React, Tailwind, and FastAPI backend
       </footer>
     </div>
   )
