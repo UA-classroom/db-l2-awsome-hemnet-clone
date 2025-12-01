@@ -214,51 +214,50 @@ INSERT INTO saved_listings (user_id, listing_id) VALUES
 -- ============================================
 INSERT INTO listing_media (listing_id, media_type_id, url, caption, position) VALUES
 -- Listing 1 - Storgatan
-(1, 1, 'https://cdn.fastighet.se/images/hem-2025-001/exterior-1.jpg', 'Fasad mot Storgatan', 1),
-(1, 1, 'https://cdn.fastighet.se/images/hem-2025-001/livingroom-1.jpg', 'Vardagsrum med öppen spis', 2),
-(1, 1, 'https://cdn.fastighet.se/images/hem-2025-001/kitchen-1.jpg', 'Renoverat kök', 3),
-(1, 1, 'https://cdn.fastighet.se/images/hem-2025-001/bedroom-1.jpg', 'Master bedroom', 4),
-(1, 2, 'https://cdn.fastighet.se/images/hem-2025-001/floorplan.jpg', 'Planritning', 5),
-(1, 3, 'https://cdn.fastighet.se/videos/hem-2025-001/tour.mp4', 'Virtuell visning', 6),
+(1, 1, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1200&q=80', 'Fasad mot Storgatan', 1),
+(1, 1, 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1400&q=80', 'Vardagsrum med öppen spis', 2),
+(1, 1, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Renoverat kök', 3),
+(1, 1, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80', 'Master bedroom', 4),
+(1, 2, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Planritning', 5),
+(1, 3, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Virtuell visning', 6),
 
 -- Listing 2 - Göteborg
-(2, 1, 'https://cdn.fastighet.se/images/hem-2025-002/exterior-1.jpg', 'Byggnaden från hamnsidan', 1),
-(2, 1, 'https://cdn.fastighet.se/images/hem-2025-002/view-1.jpg', 'Utsikt från balkong', 2),
-(2, 1, 'https://cdn.fastighet.se/images/hem-2025-002/livingroom-1.jpg', 'Vardagsrum', 3),
-(2, 2, 'https://cdn.fastighet.se/images/hem-2025-002/floorplan.jpg', 'Planritning', 4),
+(2, 1, 'https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1200&q=80', 'Byggnaden från hamnsidan', 1),
+(2, 1, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Utsikt från balkong', 2),
+(2, 1, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Vardagsrum', 3),
+(2, 2, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Planritning', 4),
 
 -- Listing 3 - Malmö
-(3, 1, 'https://cdn.fastighet.se/images/hem-2025-003/exterior-1.jpg', 'Innergård', 1),
-(3, 1, 'https://cdn.fastighet.se/images/hem-2025-003/livingroom-1.jpg', 'Vardagsrum', 2),
-(3, 2, 'https://cdn.fastighet.se/images/hem-2025-003/floorplan.jpg', 'Planritning', 3),
+(3, 1, 'https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1200&q=80', 'Innergård', 1),
+(3, 1, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Vardagsrum', 2),
+(3, 2, 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1400&q=80', 'Planritning', 3),
 
 -- Listing 4 - Uppsala villa
-(4, 1, 'https://cdn.fastighet.se/images/hem-2025-004/exterior-1.jpg', 'Villan från gatan', 1),
-(4, 1, 'https://cdn.fastighet.se/images/hem-2025-004/garden-1.jpg', 'Trädgård', 2),
-(4, 1, 'https://cdn.fastighet.se/images/hem-2025-004/livingroom-1.jpg', 'Vardagsrum', 3),
-(4, 1, 'https://cdn.fastighet.se/images/hem-2025-004/kitchen-1.jpg', 'Kök', 4),
-(4, 2, 'https://cdn.fastighet.se/images/hem-2025-004/floorplan-1.jpg', 'Planritning våning 1', 5),
-(4, 2, 'https://cdn.fastighet.se/images/hem-2025-004/floorplan-2.jpg', 'Planritning våning 2', 6),
-(4, 3, 'https://cdn.fastighet.se/videos/hem-2025-004/drone.mp4', 'Drönarvideo', 7),
+(4, 1, 'https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1200&q=80', 'Villan från gatan', 1),
+(4, 1, 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1400&q=80', 'Trädgård', 2),
+(4, 1, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80', 'Kök', 4),
+(4, 2, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Planritning våning 1', 5),
+(4, 2, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80', 'Planritning våning 2', 6),
+(4, 3, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Drönarvideo', 7),
 
 -- Listing 5 - Landskrona
-(5, 1, 'https://cdn.fastighet.se/images/hem-2025-005/exterior-1.jpg', 'Villan från havet', 1),
-(5, 1, 'https://cdn.fastighet.se/images/hem-2025-005/pool-1.jpg', 'Pool och terrass', 2),
-(5, 1, 'https://cdn.fastighet.se/images/hem-2025-005/interior-1.jpg', 'Vardagsrum med havsutsikt', 3),
-(5, 3, 'https://cdn.fastighet.se/videos/hem-2025-005/tour.mp4', '3D-visning', 4),
+(5, 1, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Villan från havet', 1),
+(5, 1, 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1400&q=80', 'Pool och terrass', 2),
+(5, 1, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80', 'Vardagsrum med havsutsikt', 3),
+(5, 3, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', '3D-visning', 4),
 
 -- Listing 8 - Djursholm
-(8, 1, 'https://cdn.fastighet.se/images/hem-2025-008/exterior-1.jpg', 'Huvudbyggnad', 1),
-(8, 1, 'https://cdn.fastighet.se/images/hem-2025-008/exterior-2.jpg', 'Trädgårdssida', 2),
-(8, 1, 'https://cdn.fastighet.se/images/hem-2025-008/hall-1.jpg', 'Entréhall', 3),
-(8, 1, 'https://cdn.fastighet.se/images/hem-2025-008/salon-1.jpg', 'Salong', 4),
-(8, 2, 'https://cdn.fastighet.se/images/hem-2025-008/floorplan.jpg', 'Planritning', 5),
+(8, 1, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Huvudbyggnad', 1),
+(8, 1, 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1400&q=80', 'Trädgårdssida', 2),
+(8, 1, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Entréhall', 3),
+(8, 1, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Salong', 4),
+(8, 2, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Planritning', 5),
 
 -- Listing 12 - Hammarby Sjöstad
-(12, 1, 'https://cdn.fastighet.se/images/hem-2025-012/exterior-1.jpg', 'Nybyggt hus vid vattnet', 1),
-(12, 1, 'https://cdn.fastighet.se/images/hem-2025-012/balcony-1.jpg', 'Balkong mot sjön', 2),
-(12, 1, 'https://cdn.fastighet.se/images/hem-2025-012/livingroom-1.jpg', 'Vardagsrum', 3),
-(12, 2, 'https://cdn.fastighet.se/images/hem-2025-012/floorplan.jpg', 'Planritning', 4);
+(12, 1, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80', 'Nybyggt hus vid vattnet', 1),
+(12, 1, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80', 'Balkong mot sjön', 2),
+(12, 1, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80', 'Vardagsrum', 3),
+(12, 2, 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80', 'Planritning', 4);
 
 -- ============================================
 -- OPEN_HOUSES
