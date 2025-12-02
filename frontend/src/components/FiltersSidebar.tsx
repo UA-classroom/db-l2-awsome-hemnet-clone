@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { PriceRangeSlider } from './PriceRangeSlider'
 
 export type FilterState = {
+  free_text_search: string
   location: string
   price: [number, number]
   minRooms: number

@@ -16,7 +16,7 @@ export function HomePage() {
     fetchProperties({ limit: 6, status: 'for_sale' }).then((data) => setFeatured(data.slice(0, 3)))
   }, [])
 
-  const goToSearch = () => navigate(`/search?location=${encodeURIComponent(search)}`)
+  const goToSearch = (nextSearch: string) => navigate(`/search?location=${encodeURIComponent(nextSearch)}`)
 
   return (
     <div className="space-y-10 lg:space-y-14">

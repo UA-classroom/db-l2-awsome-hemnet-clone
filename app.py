@@ -113,7 +113,7 @@ def autocomplete_headings(search_term: str, connection=Depends(get_db)):
 
 @app.get("/listings", tags=["listings"])
 def list_listings(
-    status_name: Optional[str] = None,
+    free_text_search: Optional[str] = None,
     city: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
@@ -122,6 +122,7 @@ def list_listings(
     property_type: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
+    status_name: Optional[str] = None,
     connection=Depends(get_db),
 ):
     query = """
@@ -151,6 +152,11 @@ def list_listings(
     conditions: List[str] = []
     params: List = []
 
+    if free_text_search:
+        conditions.append("l.title ILIKE %s OR loc.city ILIKE %s")
+        search_term = f"{free_text_search}%"
+        params.append(search_term)
+        params.append(search_term)
     if status_name:
         conditions.append("ls.name = %s")
         params.append(status_name)

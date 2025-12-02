@@ -5,7 +5,7 @@ import { fetchAutocomplete } from '../api/client'
 type Props = {
   value: string
   onChange: (value: string) => void
-  onSubmit?: () => void
+  onSubmit?: (value: string) => void
 }
 
 export function SearchBar({ value, onChange, onSubmit }: Props) {
@@ -51,12 +51,12 @@ export function SearchBar({ value, onChange, onSubmit }: Props) {
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') onSubmit?.()
+            if (e.key === 'Enter') onSubmit?.(value)
           }}
         />
         <button
           className="flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-          onClick={onSubmit}
+          onClick={() => onSubmit?.(value)}
           type="button"
         >
           <MagnifyingGlassIcon className="h-4 w-4" />
@@ -74,7 +74,7 @@ export function SearchBar({ value, onChange, onSubmit }: Props) {
                   onClick={() => {
                     onChange(item)
                     setOpen(false)
-                    onSubmit?.()
+                    onSubmit?.(item)
                   }}
                   type="button"
                 >

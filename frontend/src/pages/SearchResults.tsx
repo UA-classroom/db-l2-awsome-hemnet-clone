@@ -10,6 +10,7 @@ import type { Property } from '../types'
 import type { SavedSearch } from '../api/client'
 
 const defaultFilters: FilterState = {
+  free_text_search: '',
   location: '',
   price: [2000000, 9000000],
   minRooms: 0,
@@ -38,6 +39,7 @@ export function SearchResultsPage() {
     setError(null)
 
     fetchProperties({
+      free_text_search: filters.free_text_search,
       location: filters.location,
       minPrice: filters.price[0],
       maxPrice: filters.price[1],
@@ -118,7 +120,7 @@ export function SearchResultsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Search homes</h1>
           <p className="text-sm text-slate-600">Shareable filters via URL. Data wired for FastAPI backend.</p>
         </div>
-        <SearchBar value={filters.location} onChange={applySearch} onSubmit={() => applySearch(filters.location)} />
+        <SearchBar value={filters.location} onChange={applySearch} onSubmit={applySearch} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
