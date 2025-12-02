@@ -29,9 +29,21 @@ export function SearchResultsPage() {
   const [sendEmail, setSendEmail] = useState(true)
   const [filters, setFilters] = useState<FilterState>({
     ...defaultFilters,
+    free_text_search: searchParams.get('free_text_search') ?? '',
     location: searchParams.get('location') ?? '',
   })
   const userId = '1' // TODO: replace with auth user
+
+  const syncSearchParams = (next: FilterState) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev)
+      if (next.free_text_search) params.set('free_text_search', next.free_text_search)
+      else params.delete('free_text_search')
+      if (next.location) params.set('location', next.location)
+      else params.delete('location')
+      return params
+    })
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -78,10 +90,10 @@ export function SearchResultsPage() {
   }, [userId])
 
   const addSavedSearch = async () => {
-    if (filters.location === null) {
-      return;
+    const name = filters.free_text_search || filters.location
+    if (!name.trim()) {
+      return
     }
-    const name = filters.location
     try {
       const created = await createSavedSearch(userId, { name, send_email: sendEmail })
       setSavedSearches((prev) => [{ ...created, id: String(created.id) }, ...prev])
@@ -101,16 +113,22 @@ export function SearchResultsPage() {
     }
   }
 
-  const applySearch = (value: string) => {
-    const params = new URLSearchParams(searchParams)
-    params.set('location', value)
-    setSearchParams(params)
-    setFilters((prev) => ({ ...prev, location: value }))
+  const applyFreeTextSearch = (value: string) => {
+    setFilters((prev) => {
+      const next = { ...prev, free_text_search: value }
+      syncSearchParams(next)
+      return next
+    })
   }
 
   const handleSavedSearchSelect = (searchName: string) => {
     if (!searchName) return
-    applySearch(searchName)
+    applyFreeTextSearch(searchName)
+  }
+
+  const handleFiltersChange = (next: FilterState) => {
+    setFilters(next)
+    syncSearchParams(next)
   }
 
   return (
@@ -120,11 +138,11 @@ export function SearchResultsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Search homes</h1>
           <p className="text-sm text-slate-600">Shareable filters via URL. Data wired for FastAPI backend.</p>
         </div>
-        <SearchBar value={filters.location} onChange={applySearch} onSubmit={applySearch} />
+        <SearchBar value={filters.free_text_search} onChange={applyFreeTextSearch} onSubmit={applyFreeTextSearch} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <FiltersSidebar filters={filters} onChange={setFilters} />
+        <FiltersSidebar filters={filters} onChange={handleFiltersChange} />
         <div className="space-y-4">
           <div className="flex items-center justify-between text-sm text-slate-600">
             <span>

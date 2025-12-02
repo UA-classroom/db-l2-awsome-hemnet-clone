@@ -96,7 +96,8 @@ function normalizeProperty(raw: ApiProperty): Property {
 
 export async function fetchProperties(filters: PropertyFilters = {}): Promise<Property[]> {
   const params = new URLSearchParams()
-  if (filters.location) params.append('free_text_search', filters.location)
+  if (filters.free_text_search) params.append('free_text_search', filters.free_text_search)
+  if (filters.location) params.append('city', filters.location)
   if (filters.minPrice !== undefined) params.append('min_price', String(filters.minPrice))
   if (filters.maxPrice !== undefined) params.append('max_price', String(filters.maxPrice))
   if (filters.minRooms !== undefined && filters.minRooms > 0) params.append('min_rooms', String(filters.minRooms))
