@@ -142,3 +142,21 @@ class AgentUpdate(BaseModel):
     title: Optional[str] = None
     license_number: Optional[str] = None
     bio: Optional[str] = None
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+
+class User(BaseModel):
+    username: str
+
+
+class UserInDB(User):
+    id: int
+    hashed_password: str
