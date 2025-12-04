@@ -1410,6 +1410,7 @@ def delete_agency(agency_id: int, connection=Depends(get_db)):
         "DELETE FROM agencies WHERE id = %s RETURNING id",
         (agency_id,),
     )
+
     _raise_if_not_found(deleted, "Saved search")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
