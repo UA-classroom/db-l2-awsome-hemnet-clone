@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { BASE_URL } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [username, setUsername] = useState("test@example.com");
-  const [password, setPassword] = useState("password");
-  const [error, setError] = useState("");
+  const [username, setUsername] = useState('anna.lindqvist@email.se')
+  const [password, setPassword] = useState('1234')
+  const [error, setError] = useState('')
+  const { login, logout, isAuthenticated, userId, error: authError } = useAuth()
 
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -30,19 +32,8 @@ export function AuthPage() {
       }
 
       const data = await res.json();
-      console.log(data)
-      const token = data.access_token
-      localStorage.setItem("token", token);
-
-      // const responce = await fetch(`${BASE_URL}/get/me`, {
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-      //   },
-      // });
-      // if (responce.ok) {
-      //   const data = await responce.json();
-      //   console.log(data)
-      // }
+      const token = data.access_token;
+      login(token);
 
     } catch (err) {
       setError((err as Error).message || "Something went wrong");
@@ -76,6 +67,19 @@ export function AuthPage() {
         </div>
       </div>
 
+      {isAuthenticated && (
+        <div className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          <span>{username || (userId ? `Logged in as user ${userId}` : 'Logged in')}</span>
+          <button
+            className="rounded-full border border-emerald-600 px-3 py-1 text-emerald-700 transition hover:bg-white"
+            onClick={logout}
+            type="button"
+          >
+            Logout
+          </button>
+        </div>
+      )}
+
       <form className="space-y-4" onSubmit={handleSubmit}>
         {mode === 'register' && (
           <div className="space-y-1">
@@ -84,13 +88,14 @@ export function AuthPage() {
           </div>
         )}
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {(error || authError) && <p className="text-sm text-red-600">{error || authError}</p>}
 
         <div className="space-y-1">
           <label className="text-sm font-semibold text-slate-800">Email</label>
           <input
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             placeholder="you@example.com" type="email"
+            value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
         </div>
@@ -99,6 +104,7 @@ export function AuthPage() {
           <input
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             placeholder="••••••••" type="password"
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>

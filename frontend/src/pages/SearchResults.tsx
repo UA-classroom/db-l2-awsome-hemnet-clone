@@ -5,10 +5,10 @@ import type { FilterState } from '../components/FiltersSidebar'
 import { FiltersSidebar } from '../components/FiltersSidebar'
 import { PropertyCard } from '../components/PropertyCard'
 import { SearchBar } from '../components/SearchBar'
+import { useAuth } from '../context/AuthContext'
 import { useFavorites } from '../context/FavoritesContext'
-import type { Property } from '../types'
 import type { SavedSearch } from '../api/client'
-import { BASE_URL } from '../api/client'
+import type { Property } from '../types'
 
 const defaultFilters: FilterState = {
   free_text_search: '',
@@ -23,6 +23,7 @@ const defaultFilters: FilterState = {
 export function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { favorites, toggle } = useFavorites()
+  const { userId, isAuthenticated, isLoading: authLoading } = useAuth()
   const [results, setResults] = useState<Property[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,8 +34,6 @@ export function SearchResultsPage() {
     free_text_search: searchParams.get('free_text_search') ?? '',
     location: searchParams.get('location') ?? '',
   })
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
-  const [userId, setUserId] = useState<number | null>(null)
 
   const syncSearchParams = (next: FilterState) => {
     setSearchParams((prev) => {
@@ -82,7 +81,10 @@ export function SearchResultsPage() {
   }, [filters])
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) {
+      setSavedSearches([])
+      return
+    }
 
     let cancelled = false
     fetchSavedSearches(userId, 20, 0).then((items) => {
@@ -95,31 +97,21 @@ export function SearchResultsPage() {
   }, [userId])
 
   useEffect(() => {
-    const fetchMe = async () => {
-      if (!token) return;
-      const res = await fetch(`${BASE_URL}/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // setMe(data);
-        setUserId(data.user_id)
-      } else {
-        handleLogout();
-      }
-    };
-    fetchMe();
-  }, [token]);
-
-  const handleLogout = () => {
-    setToken(null);
-    localStorage.removeItem("token");
-  };
+    if (isAuthenticated) {
+      setError(null)
+    }
+  }, [isAuthenticated])
 
   const addSavedSearch = async () => {
-    if (!userId) return
+    if (!isAuthenticated) {
+      setError('Log in to save this search.')
+      return
+    }
+    if (!userId) {
+      setError('Loading your account... please try again in a moment.')
+      return
+    }
+    setError(null)
     const name = filters.free_text_search || filters.location
     if (!name.trim()) {
       return
@@ -193,7 +185,8 @@ export function SearchResultsPage() {
                 Email alerts
               </label>
               <button
-                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                disabled={authLoading || !isAuthenticated || !userId}
                 type="button"
                 onClick={addSavedSearch}
               >
