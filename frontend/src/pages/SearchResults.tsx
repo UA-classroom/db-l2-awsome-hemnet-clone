@@ -7,7 +7,7 @@ import { PropertyCard } from '../components/PropertyCard'
 import { SearchBar } from '../components/SearchBar'
 import { useAuth } from '../context/AuthContext'
 import { useFavorites } from '../context/FavoritesContext'
-import type { SavedSearch } from '../api/client'
+import type { SavedSearch, SavedSearchFilters } from '../api/client'
 import type { Property } from '../types'
 
 const defaultFilters: FilterState = {
@@ -18,6 +18,36 @@ const defaultFilters: FilterState = {
   maxRooms: Infinity,
   propertyTypes: [],
   status: 'for_sale',
+}
+
+const toSavedSearchFilters = (state: FilterState): SavedSearchFilters => {
+  return {
+    free_text_search: state.free_text_search || undefined,
+    location: state.location || undefined,
+    price: [state.price[0], state.price[1]],
+    minRooms: state.minRooms,
+    maxRooms: state.maxRooms === Infinity ? null : state.maxRooms,
+    propertyTypes: state.propertyTypes.length ? [...state.propertyTypes] : [],
+    status: state.status,
+  }
+}
+
+const hydrateFiltersFromSavedSearch = (search: SavedSearch): FilterState => {
+  const saved = search.filters
+  const priceRange: [number, number] = saved?.price
+    ? [saved.price[0], saved.price[1]]
+    : [defaultFilters.price[0], defaultFilters.price[1]]
+
+  return {
+    ...defaultFilters,
+    free_text_search: saved?.free_text_search ?? search.query ?? defaultFilters.free_text_search,
+    location: saved?.location ?? defaultFilters.location,
+    price: priceRange,
+    minRooms: saved?.minRooms ?? defaultFilters.minRooms,
+    maxRooms: saved?.maxRooms === null || saved?.maxRooms === undefined ? defaultFilters.maxRooms : saved.maxRooms,
+    propertyTypes: saved?.propertyTypes ? [...saved.propertyTypes] : [...defaultFilters.propertyTypes],
+    status: saved?.status ?? defaultFilters.status,
+  }
 }
 
 export function SearchResultsPage() {
@@ -112,13 +142,15 @@ export function SearchResultsPage() {
       return
     }
     setError(null)
-    const name = filters.free_text_search || filters.location
-    if (!name.trim()) {
+    const query = filters.free_text_search || filters.location
+    if (!query.trim()) {
       return
     }
     try {
-      const created = await createSavedSearch(userId, { name, send_email: sendEmail })
-      setSavedSearches((prev) => [{ ...created, id: String(created.id) }, ...prev])
+      const filterPayload = toSavedSearchFilters(filters)
+      const created = await createSavedSearch(userId, { query, send_email: sendEmail, filters: filterPayload })
+      const normalized = created.filters ? created : { ...created, filters: filterPayload }
+      setSavedSearches((prev) => [normalized, ...prev])
     } catch (err) {
       console.error('Failed to save search', err)
       setError('Could not save this search.')
@@ -144,9 +176,11 @@ export function SearchResultsPage() {
     })
   }
 
-  const handleSavedSearchSelect = (searchName: string) => {
-    if (!searchName) return
-    applyFreeTextSearch(searchName)
+  const handleSavedSearchSelect = (search: SavedSearch) => {
+    if (!search) return
+    const restoredFilters = hydrateFiltersFromSavedSearch(search)
+    setFilters(restoredFilters)
+    syncSearchParams(restoredFilters)
   }
 
   const handleFiltersChange = (next: FilterState) => {
@@ -203,9 +237,9 @@ export function SearchResultsPage() {
                     <button
                       className="text-left text-slate-700 transition hover:text-emerald-700"
                       type="button"
-                      onClick={() => handleSavedSearchSelect(item.name)}
+                      onClick={() => handleSavedSearchSelect(item)}
                     >
-                      {item.name}
+                      {item.query}
                     </button>
                     <button
                       aria-label="Delete saved search"

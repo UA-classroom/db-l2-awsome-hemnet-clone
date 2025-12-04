@@ -146,10 +146,24 @@ CREATE TABLE user_roles (
 CREATE TABLE saved_searches (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id     INTEGER NOT NULL REFERENCES users(id),
-    name        VARCHAR(255) NOT NULL,
+    query       VARCHAR(255),
+    location    VARCHAR(150),
+
+    price_min   NUMERIC,
+    price_max   NUMERIC, 
+
+    rooms_min   NUMERIC,                  -- NULL = "Any"
+    rooms_max   NUMERIC,                  -- NULL = "Any"
+
     send_email  BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE saved_search_property_type (
+    saved_search_id BIGINT NOT NULL REFERENCES saved_search(id) ON DELETE CASCADE,
+    property_type_id SMALLINT NOT NULL REFERENCES property_type(id),
+    PRIMARY KEY (saved_search_id, property_type_id)
 );
 
 CREATE TABLE agencies (

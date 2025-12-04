@@ -590,8 +590,22 @@ def user_saved_searches(
     connection=Depends(get_db),
 ):
     query = """
-        SELECT id, name, send_email, created_at, updated_at
-        FROM saved_searches
+        SELECT ss.id,
+            ss.query,
+            ss.location,
+            ss.price_min,
+            ss.price_max,
+            ss.rooms_min,
+            ss.rooms_max,
+            ss.send_email,
+            ss.create_access_tokenated_at,
+            ss.updated_at,
+            pt.name
+        FROM saved_searches ss
+        JOIN saved_search_property_type sspt
+        ON sspt.saved_searches_id = ss.id
+        JOIN property_types pt
+        ON pt.id = sspt.property_type_id
         WHERE user_id = %s
         ORDER BY created_at DESC
     """
@@ -890,14 +904,40 @@ def create_saved_search(
     user_id: int, payload: SavedSearchCreate, connection=Depends(get_db)
 ):
     query = """
-        INSERT INTO saved_searches (user_id, name, send_email)
-        VALUES (%s, %s, %s)
-        RETURNING id, user_id, name, send_email, created_at, updated_at
+        INSERT INTO saved_searches (user_id, query, location, price_min, price_max, rooms_min, rooms_max, send_email)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, user_id, query, send_email, created_at, updated_at
     """
     try:
         row = execute_returning(
-            connection, query, (user_id, payload.name, payload.send_email)
+            connection,
+            query,
+            (
+                user_id,
+                payload.query,
+                payload.location,
+                payload.price_min,
+                payload.price_max,
+                payload.rooms_min,
+                payload.rooms_max,
+                payload.send_email,
+            ),
         )
+
+        if row:
+            for property_type in payload.property_types:
+                type_row = execute_returning(
+                    connection,
+                    """INSERT INTO saved_search_property_type(saved_search_id, property_type_id)
+                        VALUES(%s, (SELECT id FROM property_type WHERE name = %s))
+                        RETURNING *
+                    """,
+                    (row["id"], property_type),
+                )
+
+                _raise_if_not_found(
+                    type_row, f"Could not save property type {property_type}"
+                )
 
         return row
     except IntegrityError as exc:
@@ -1496,6 +1536,6 @@ async def login_for_access_token(
     return {"access_token": access_token}
 
 
-@app.get("/get/me")
+@app.get("/get/me", tags=["protected"])
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return {"user_id": current_user.id, "username": current_user.username}

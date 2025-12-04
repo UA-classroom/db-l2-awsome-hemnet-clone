@@ -41,12 +41,28 @@ export type PropertyFilters = {
   offset?: number
 }
 
+export type SavedSearchFilters = {
+  free_text_search?: string
+  location?: string
+  price?: [number, number]
+  minRooms?: number
+  maxRooms?: number | null
+  propertyTypes?: string[]
+  status?: string
+}
+
 export type SavedSearch = {
   id: string
-  name: string
+  query: string
   send_email: boolean
+  filters?: SavedSearchFilters | null
   created_at?: string
   updated_at?: string
+}
+
+type ApiSavedSearch = Omit<SavedSearch, 'id' | 'filters'> & {
+  id: string | number
+  filters?: SavedSearchFilters | string | null
 }
 
 type AutocompleteResponse = {
@@ -91,6 +107,31 @@ function normalizeProperty(raw: ApiProperty): Property {
     tags: [],
     isFavorite: false,
     status: raw.status,
+  }
+}
+
+function parseSavedSearchFilters(filters?: SavedSearchFilters | string | null): SavedSearchFilters | undefined {
+  if (!filters) {
+    return undefined
+  }
+
+  if (typeof filters === 'string') {
+    try {
+      return JSON.parse(filters) as SavedSearchFilters
+    } catch (error) {
+      console.warn('Failed to parse saved search filters', error)
+      return undefined
+    }
+  }
+
+  return filters
+}
+
+function normalizeSavedSearch(item: ApiSavedSearch): SavedSearch {
+  return {
+    ...item,
+    id: String(item.id),
+    filters: parseSavedSearchFilters(item.filters),
   }
 }
 
@@ -190,15 +231,21 @@ export async function fetchSavedSearches(userId: number, limit?: number, offset?
   if (offset !== undefined) params.append('offset', String(offset))
 
   try {
-    const data = await fetchJson<{ items?: SavedSearch[] }>(`/users/${userId}/searches?${params.toString()}`)
-    return data.items?.map((item) => ({ ...item, id: String(item.id) })) ?? []
+    const data = await fetchJson<{ items?: ApiSavedSearch[] }>(`/users/${userId}/searches?${params.toString()}`)
+    return data.items?.map(normalizeSavedSearch) ?? []
   } catch (error) {
     console.error('Failed to fetch saved searches', error)
     return []
   }
 }
 
-export async function createSavedSearch(userId: number, payload: { name: string; send_email: boolean }) {
+export type CreateSavedSearchPayload = {
+  query: string
+  send_email: boolean
+  filters?: SavedSearchFilters
+}
+
+export async function createSavedSearch(userId: number, payload: CreateSavedSearchPayload) {
   const res = await fetch(`${BASE_URL}/users/${userId}/searches`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -210,7 +257,8 @@ export async function createSavedSearch(userId: number, payload: { name: string;
     throw new Error(text || `Failed to create saved search (${res.status})`)
   }
 
-  return res.json() as Promise<SavedSearch>
+  const data = (await res.json()) as ApiSavedSearch
+  return normalizeSavedSearch(data)
 }
 
 export async function deleteSavedSearch(userId: number, searchId: string) {

@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime
+from psycopg2.extensions import string_types
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -110,7 +111,13 @@ class OpenHouseCreate(BaseModel):
 
 
 class SavedSearchCreate(BaseModel):
-    name: str
+    query: str
+    location: str
+    price_min: float
+    price_max: float
+    rooms_min: float
+    rooms_max: float
+    property_types: list[str]
     send_email: bool = False
 
 
