@@ -112,28 +112,31 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(username: str, connection=Depends(get_db)) -> Optional[UserInDB]:
+def get_user(username: str, connection) -> Optional[UserInDB]:
     user = fetch_one(
-        connection, "SELECT in, username FROM users WHERE username = %s", (username,)
+        connection,
+        "SELECT id, email, password FROM users WHERE email = %s",
+        (username,),
     )
-    if user:
-        user_dict = user[0]
-        return UserInDB(
-            username=username, id=user_dict["id"], hashed_password=user_dict["password"]
-        )
-    return None
-
-
-def authenticate_user(username: str, password: str):
-    user = get_user(username)
     if not user:
-        return False
+        return None
+    return UserInDB(
+        username=user["email"],
+        id=user["id"],
+        hashed_password=user["password"],
+    )
+
+
+def authenticate_user(username: str, password: str, connection) -> Optional[UserInDB]:
+    user = get_user(username, connection)
+    if not user:
+        return None
     if not verify_password(password, user.hashed_password):
-        return False
+        return None
     return user
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
@@ -141,8 +144,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-# ==== Dependency för skyddade endpoints ====
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+# ==== Dependency for protection endpoints ====
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), connection=Depends(get_db)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -163,12 +168,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         if token_data.username is None:
             raise credentials_exception
 
-        user = get_user(username=token_data.username)
+        user = get_user(username=token_data.username, connection=connection)
     except JWTError:
         raise credentials_exception
 
     if user is None:
         raise credentials_exception
+
     return user
 
 
@@ -1410,10 +1416,11 @@ def delete_agency(agency_id: int, connection=Depends(get_db)):
 
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    # form_data.username & form_data.password kommer från React
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), connection=Depends(get_db)
+):
+    user = authenticate_user(form_data.username, form_data.password, connection)
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Wrong username or password",
@@ -1425,9 +1432,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={"sub": user.username},
         expires_delta=access_token_expires,
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    return {"user_id": user.id, "access_token": access_token}
 
 
 @app.get("/get/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"username": current_user.username}
+    return {"id": current_user.id, "username": current_user.username}

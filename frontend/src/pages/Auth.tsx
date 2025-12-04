@@ -30,8 +30,20 @@ export function AuthPage() {
       }
 
       const data = await res.json();
+      console.log(data)
+      const token = data.access_token
+      localStorage.setItem("token", token);
 
-      localStorage.setItem("token", data.access_token);
+      // const responce = await fetch(`${BASE_URL}/get/me`, {
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      // });
+      // if (responce.ok) {
+      //   const data = await responce.json();
+      //   console.log(data)
+      // }
+
     } catch (err) {
       setError((err as Error).message || "Something went wrong");
     }

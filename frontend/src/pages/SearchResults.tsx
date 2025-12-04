@@ -8,6 +8,7 @@ import { SearchBar } from '../components/SearchBar'
 import { useFavorites } from '../context/FavoritesContext'
 import type { Property } from '../types'
 import type { SavedSearch } from '../api/client'
+import { BASE_URL } from '../api/client'
 
 const defaultFilters: FilterState = {
   free_text_search: '',
@@ -32,7 +33,8 @@ export function SearchResultsPage() {
     free_text_search: searchParams.get('free_text_search') ?? '',
     location: searchParams.get('location') ?? '',
   })
-  const userId = '1' // TODO: replace with auth user
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [userId, setUserId] = useState<number | null>(null)
 
   const syncSearchParams = (next: FilterState) => {
     setSearchParams((prev) => {
@@ -80,16 +82,44 @@ export function SearchResultsPage() {
   }, [filters])
 
   useEffect(() => {
+    if (!userId) return
+
     let cancelled = false
     fetchSavedSearches(userId, 20, 0).then((items) => {
       if (!cancelled) setSavedSearches(items)
     })
+
     return () => {
       cancelled = true
     }
   }, [userId])
 
+  useEffect(() => {
+    const fetchMe = async () => {
+      if (!token) return;
+      const res = await fetch(`${BASE_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // setMe(data);
+        setUserId(data.user_id)
+      } else {
+        handleLogout();
+      }
+    };
+    fetchMe();
+  }, [token]);
+
+  const handleLogout = () => {
+    setToken(null);
+    localStorage.removeItem("token");
+  };
+
   const addSavedSearch = async () => {
+    if (!userId) return
     const name = filters.free_text_search || filters.location
     if (!name.trim()) {
       return
@@ -104,6 +134,7 @@ export function SearchResultsPage() {
   }
 
   const removeSavedSearch = async (id: string) => {
+    if (!userId) return
     try {
       await deleteSavedSearch(userId, id)
       setSavedSearches((prev) => prev.filter((item) => item.id !== id))

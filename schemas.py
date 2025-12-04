@@ -146,7 +146,7 @@ class AgentUpdate(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    user_id: int
 
 
 class TokenData(BaseModel):
@@ -154,9 +154,9 @@ class TokenData(BaseModel):
 
 
 class User(BaseModel):
+    id: int
     username: str
 
 
 class UserInDB(User):
-    id: int
     hashed_password: str

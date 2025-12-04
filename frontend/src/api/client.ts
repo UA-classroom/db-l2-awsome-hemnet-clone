@@ -149,7 +149,7 @@ export async function fetchProperty(id: string): Promise<Property | null> {
   }
 }
 
-export async function fetchSavedListings(userId: string): Promise<string[]> {
+export async function fetchSavedListings(userId: number): Promise<string[]> {
   try {
     const data = await fetchJson<{ items?: { listing_id: number | string }[] }>(`/users/${userId}/saved-listings`)
     return (data.items ?? []).map((item) => String(item.listing_id))
@@ -159,7 +159,7 @@ export async function fetchSavedListings(userId: string): Promise<string[]> {
   }
 }
 
-export async function saveFavoriteListing(userId: string, listingId: string): Promise<void> {
+export async function saveFavoriteListing(userId: number, listingId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/users/${userId}/saved-listings?listing_id=${listingId}`, {
     method: 'POST',
     headers: {
@@ -173,7 +173,7 @@ export async function saveFavoriteListing(userId: string, listingId: string): Pr
   }
 }
 
-export async function deleteFavoriteListing(userId: string, listingId: string): Promise<void> {
+export async function deleteFavoriteListing(userId: number, listingId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/users/${userId}/saved-listings/${listingId}`, {
     method: 'DELETE',
   })
@@ -184,7 +184,7 @@ export async function deleteFavoriteListing(userId: string, listingId: string): 
   }
 }
 
-export async function fetchSavedSearches(userId: string, limit?: number, offset?: number): Promise<SavedSearch[]> {
+export async function fetchSavedSearches(userId: number, limit?: number, offset?: number): Promise<SavedSearch[]> {
   const params = new URLSearchParams()
   if (limit !== undefined) params.append('limit', String(limit))
   if (offset !== undefined) params.append('offset', String(offset))
@@ -198,7 +198,7 @@ export async function fetchSavedSearches(userId: string, limit?: number, offset?
   }
 }
 
-export async function createSavedSearch(userId: string, payload: { name: string; send_email: boolean }) {
+export async function createSavedSearch(userId: number, payload: { name: string; send_email: boolean }) {
   const res = await fetch(`${BASE_URL}/users/${userId}/searches`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -213,7 +213,7 @@ export async function createSavedSearch(userId: string, payload: { name: string;
   return res.json() as Promise<SavedSearch>
 }
 
-export async function deleteSavedSearch(userId: string, searchId: string) {
+export async function deleteSavedSearch(userId: number, searchId: string) {
   const res = await fetch(`${BASE_URL}/users/${userId}/searches/${searchId}`, {
     method: 'DELETE',
   })
