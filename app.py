@@ -1383,7 +1383,7 @@ def delete_agent(agent_id: int, connection=Depends(get_db)):
         "DELETE FROM agents WHERE id = %s RETURNING id",
         (agent_id,),
     )
-    _raise_if_not_found(deleted, "Saved search")
+    _raise_if_not_found(deleted, "Agent deleted")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1411,9 +1411,68 @@ def delete_agency(agency_id: int, connection=Depends(get_db)):
         (agency_id,),
     )
 
-    _raise_if_not_found(deleted, "Saved search")
+    _raise_if_not_found(deleted, "Agency Deleted")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.patch("/listings/{listing_id}/change/title")
+def update_listing_title(
+    listing_id: int,
+    title: str,
+    _: User = Depends(get_current_user),
+    connection=Depends(get_db),
+):
+    listing_query = """
+        UPDATE listings
+        SET title = %s,
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING *
+    """
+    patched = execute_returning(
+        connection,
+        listing_query,
+        (
+            title,
+            listing_id,
+        ),
+    )
+
+    return _raise_if_not_found(patched, "Listings title updated")
+
+
+@app.patch("/agents/{agents_id}/change/name")
+def update_agent_name(
+    agent_id: int,
+    first_name: str,
+    last_name: str,
+    _: User = Depends(get_current_user),
+    connection=Depends(get_db),
+):
+    agent_query = """
+        UPDATE users
+        SET first_name = %s,
+            last_name = %s,
+            updated_at = NOW()
+        WHERE id = (
+            SELECT user_id 
+            FROM agents 
+            WHERE id = %s
+        )
+        RETURNING title
+    """
+    patched = execute_returning(
+        connection,
+        agent_query,
+        (
+            first_name,
+            last_name,
+            agent_id,
+        ),
+    )
+
+    return _raise_if_not_found(patched, "Agent name updated")
 
 
 @app.post("/token", response_model=Token)
