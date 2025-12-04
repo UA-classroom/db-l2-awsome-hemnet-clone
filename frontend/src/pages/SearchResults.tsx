@@ -186,7 +186,7 @@ export function SearchResultsPage() {
               </label>
               <button
                 className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-                disabled={authLoading || !isAuthenticated || !userId}
+                disabled={authLoading || !isAuthenticated}
                 type="button"
                 onClick={addSavedSearch}
               >

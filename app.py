@@ -1439,4 +1439,4 @@ async def login_for_access_token(
 
 @app.get("/get/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"id": current_user.id, "username": current_user.username}
+    return {"user_id": current_user.id, "username": current_user.username}

@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { deleteFavoriteListing, fetchSavedListings, saveFavoriteListing } from '../api/client'
+import { useAuth } from './AuthContext'
 
 const FavoritesContext = createContext<{
   favorites: Set<string>
@@ -9,23 +10,30 @@ const FavoritesContext = createContext<{
   toggle: () => undefined,
 })
 
-const DEFAULT_USER_ID = '1' // TODO: wire to real auth user
-
 export function FavoritesProvider({ children }: { children: ReactNode }) {
+  const { userId, isAuthenticated } = useAuth()
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    setFavorites(new Set())
+    if (!isAuthenticated || !userId) return
+
     let cancelled = false
-    fetchSavedListings(DEFAULT_USER_ID).then((items) => {
+    fetchSavedListings(userId).then((items) => {
       if (cancelled) return
       setFavorites(new Set(items))
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isAuthenticated, userId])
 
   const toggle = useCallback((id: string) => {
+    if (!isAuthenticated || !userId) {
+      console.warn('Favorites toggle ignored: no authenticated user.')
+      return
+    }
+
     const wasFavorite = favorites.has(id)
 
     setFavorites((prev) => {
@@ -41,9 +49,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     ;(async () => {
       try {
         if (wasFavorite) {
-          await deleteFavoriteListing(DEFAULT_USER_ID, id)
+          await deleteFavoriteListing(userId, id)
         } else {
-          await saveFavoriteListing(DEFAULT_USER_ID, id)
+          await saveFavoriteListing(userId, id)
         }
       } catch (error) {
         console.error('Favorite toggle failed', error)
@@ -59,7 +67,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         })
       }
     })()
-  }, [favorites])
+  }, [favorites, isAuthenticated, userId])
 
   const value = useMemo(() => ({ favorites, toggle }), [favorites, toggle])
 
