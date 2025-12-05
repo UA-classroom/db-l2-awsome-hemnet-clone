@@ -1,6 +1,5 @@
 from typing import Optional
 from datetime import datetime
-from psycopg2.extensions import string_types
 from pydantic import BaseModel, EmailStr, Field
 
 

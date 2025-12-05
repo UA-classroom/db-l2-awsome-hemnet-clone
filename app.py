@@ -906,7 +906,7 @@ def create_saved_search(
     query = """
         INSERT INTO saved_searches (user_id, query, location, price_min, price_max, rooms_min, rooms_max, send_email)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id, user_id, query, send_email, created_at, updated_at
+        RETURNING id, user_id, query, location, price_min, price_max, rooms_min, rooms_max, send_email, created_at, updated_at
     """
     try:
         row = execute_returning(
@@ -928,11 +928,12 @@ def create_saved_search(
             for property_type in payload.property_types:
                 type_row = execute_returning(
                     connection,
-                    """INSERT INTO saved_search_property_type(saved_search_id, property_type_id)
-                        VALUES(%s, (SELECT id FROM property_type WHERE name = %s))
+                    """
+                        INSERT INTO saved_search_property_type(saved_search_id, property_type_id)
+                        VALUES(%s, (SELECT id FROM property_types WHERE name = %s))
                         RETURNING *
                     """,
-                    (row["id"], property_type),
+                    (row["id"], property_type.lower()),
                 )
 
                 _raise_if_not_found(
@@ -1204,21 +1205,21 @@ def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(g
 def update_saved_search(
     user_id: int,
     search_id: int,
-    name: str,
+    query: str,
     send_email: bool = False,
     connection=Depends(get_db),
 ):
-    query = """
+    update_query = """
         UPDATE saved_searches
-        SET name = %s,
+        SET query = %s,
             send_email = %s,
             updated_at = NOW()
         WHERE id = %s AND user_id = %s
-        RETURNING id, user_id, name, send_email, created_at, updated_at
+        RETURNING id, user_id, query, send_email, created_at, updated_at
     """
     try:
         row = execute_returning(
-            connection, query, (name, send_email, search_id, user_id)
+            connection, update_query, (query, send_email, search_id, user_id)
         )
         return _raise_if_not_found(row, "Saved search")
     except IntegrityError as exc:

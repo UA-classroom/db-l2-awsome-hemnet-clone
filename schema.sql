@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS listing_media;
 DROP TABLE IF EXISTS saved_listings;
 DROP TABLE IF EXISTS listing_agents;
 DROP TABLE IF EXISTS listing_properties;
+DROP TABLE IF EXISTS saved_search_property_type;
 
 DROP TABLE IF EXISTS agent_agencies;
 DROP TABLE IF EXISTS listings;
@@ -152,8 +153,8 @@ CREATE TABLE saved_searches (
     price_min   NUMERIC,
     price_max   NUMERIC, 
 
-    rooms_min   NUMERIC,                  -- NULL = "Any"
-    rooms_max   NUMERIC,                  -- NULL = "Any"
+    rooms_min   NUMERIC, -- NULL = "Any"
+    rooms_max   NUMERIC, -- NULL = "Any"
 
     send_email  BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -161,8 +162,8 @@ CREATE TABLE saved_searches (
 );
 
 CREATE TABLE saved_search_property_type (
-    saved_search_id BIGINT NOT NULL REFERENCES saved_search(id) ON DELETE CASCADE,
-    property_type_id SMALLINT NOT NULL REFERENCES property_type(id),
+    saved_search_id BIGINT NOT NULL REFERENCES saved_searches(id) ON DELETE CASCADE,
+    property_type_id SMALLINT NOT NULL REFERENCES property_types(id),
     PRIMARY KEY (saved_search_id, property_type_id)
 );
 

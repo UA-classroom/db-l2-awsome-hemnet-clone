@@ -187,7 +187,7 @@ INSERT INTO listing_agents (agent_id, listing_id) VALUES
 -- ============================================
 -- SAVED_SEARCHES
 -- ============================================
-INSERT INTO saved_searches (user_id, name, send_email) VALUES
+INSERT INTO saved_searches (user_id, query, send_email) VALUES
 (1, 'Lägenheter Stockholm innerstad 3+ rum', TRUE),
 (1, 'Villor Danderyd/Djursholm', FALSE),
 (2, 'Bostadsrätter Göteborg max 4 mkr', TRUE),
