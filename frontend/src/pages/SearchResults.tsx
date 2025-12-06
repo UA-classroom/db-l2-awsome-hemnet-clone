@@ -148,7 +148,16 @@ export function SearchResultsPage() {
     }
     try {
       const filterPayload = toSavedSearchFilters(filters)
-      const created = await createSavedSearch(userId, { query, send_email: sendEmail, filters: filterPayload })
+      const created = await createSavedSearch(userId, {
+        query,
+        location: filters.location || filters.free_text_search || query,
+        price_min: filters.price?.[0] ?? 0,
+        price_max: filters.price?.[1] ?? 0,
+        rooms_min: filters.minRooms ?? 0,
+        rooms_max: Number.isFinite(filters.maxRooms) ? filters.maxRooms : 0,
+        property_types: filters.propertyTypes.map((type) => type.toLowerCase()),
+        send_email: sendEmail,
+      })
       const normalized = created.filters ? created : { ...created, filters: filterPayload }
       setSavedSearches((prev) => [normalized, ...prev])
     } catch (err) {

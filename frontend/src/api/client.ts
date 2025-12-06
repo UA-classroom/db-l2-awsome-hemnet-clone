@@ -241,8 +241,13 @@ export async function fetchSavedSearches(userId: number, limit?: number, offset?
 
 export type CreateSavedSearchPayload = {
   query: string
+  location: string
+  price_min: number
+  price_max: number
+  rooms_min: number
+  rooms_max: number
+  property_types: string[]
   send_email: boolean
-  filters?: SavedSearchFilters
 }
 
 export async function createSavedSearch(userId: number, payload: CreateSavedSearchPayload) {

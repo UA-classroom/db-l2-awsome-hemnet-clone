@@ -120,6 +120,17 @@ class SavedSearchCreate(BaseModel):
     send_email: bool = False
 
 
+class SavedSearchUpdate(BaseModel):
+    query: Optional[str] = None
+    location: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    rooms_min: Optional[float] = None
+    rooms_max: Optional[float] = None
+    property_types: Optional[list[str]] = None
+    send_email: Optional[bool] = None
+
+
 class AgencyCreate(BaseModel):
     name: str
     org_number: Optional[str] = None

@@ -14,6 +14,7 @@ from schemas import (
     ListingMediaCreate,
     OpenHouseCreate,
     SavedSearchCreate,
+    SavedSearchUpdate,
     AddressUpdate,
     LocationUpdate,
     UserUpdate,
@@ -598,12 +599,12 @@ def user_saved_searches(
             ss.rooms_min,
             ss.rooms_max,
             ss.send_email,
-            ss.create_access_tokenated_at,
+            ss.created_at,
             ss.updated_at,
             pt.name
         FROM saved_searches ss
         JOIN saved_search_property_type sspt
-        ON sspt.saved_searches_id = ss.id
+        ON sspt.saved_search_id = ss.id
         JOIN property_types pt
         ON pt.id = sspt.property_type_id
         WHERE user_id = %s
@@ -1205,23 +1206,61 @@ def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(g
 def update_saved_search(
     user_id: int,
     search_id: int,
-    query: str,
-    send_email: bool = False,
+    payload: SavedSearchUpdate,
     connection=Depends(get_db),
 ):
     update_query = """
         UPDATE saved_searches
-        SET query = %s,
-            send_email = %s,
+        SET query = COALESCE(%s, query),
+            location = COALESCE(%s, location),
+            price_min = COALESCE(%s, price_min),
+            price_max = COALESCE(%s, price_max),
+            rooms_min = COALESCE(%s, rooms_min),
+            rooms_max = COALESCE(%s, rooms_max),
+            send_email = COALESCE(%s, send_email),
             updated_at = NOW()
         WHERE id = %s AND user_id = %s
-        RETURNING id, user_id, query, send_email, created_at, updated_at
+        RETURNING id, user_id, query, location, price_min, price_max, rooms_min, rooms_max, send_email, created_at, updated_at
+    """
+    property_type_insert = """
+        INSERT INTO saved_search_property_type (saved_search_id, property_type_id)
+        VALUES (%s, (SELECT id FROM property_types WHERE name = %s))
+        RETURNING saved_search_id, property_type_id
     """
     try:
-        row = execute_returning(
-            connection, update_query, (query, send_email, search_id, user_id)
-        )
-        return _raise_if_not_found(row, "Saved search")
+        with connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    update_query,
+                    (
+                        payload.query,
+                        payload.location,
+                        payload.price_min,
+                        payload.price_max,
+                        payload.rooms_min,
+                        payload.rooms_max,
+                        payload.send_email,
+                        search_id,
+                        user_id,
+                    ),
+                )
+                saved_search = _raise_if_not_found(cursor.fetchone(), "Saved search")
+
+                if payload.property_types is not None:
+                    cursor.execute(
+                        "DELETE FROM saved_search_property_type WHERE saved_search_id = %s",
+                        (search_id,),
+                    )
+                    for property_type in payload.property_types:
+                        cursor.execute(
+                            property_type_insert, (search_id, property_type.lower())
+                        )
+                        _raise_if_not_found(
+                            cursor.fetchone(),
+                            f"Could not save property type {property_type}",
+                        )
+
+        return saved_search
     except IntegrityError as exc:
         _handle_error(exc, "Could not update saved search")
 
