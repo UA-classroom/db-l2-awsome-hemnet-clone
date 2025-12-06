@@ -244,7 +244,7 @@ def list_listings(
     params: List = []
 
     if free_text_search:
-        conditions.append("l.title ILIKE %s OR loc.city ILIKE %s")
+        conditions.append("(l.title ILIKE %s OR loc.city ILIKE %s)")
         search_term = f"{free_text_search}%"
         params.append(search_term)
         params.append(search_term)
@@ -601,13 +601,14 @@ def user_saved_searches(
             ss.send_email,
             ss.created_at,
             ss.updated_at,
-            pt.name
+            array_agg(pt.name) AS property_types -- array_agg() för att eggregera pt.name till en array istället för en rad per property_type
         FROM saved_searches ss
         JOIN saved_search_property_type sspt
         ON sspt.saved_search_id = ss.id
         JOIN property_types pt
         ON pt.id = sspt.property_type_id
         WHERE user_id = %s
+        GROUP BY ss.id
         ORDER BY created_at DESC
     """
 
