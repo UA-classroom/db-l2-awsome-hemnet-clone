@@ -241,36 +241,36 @@ def list_listings(
         JOIN locations loc ON p.location_id = loc.id
     """
     conditions: List[str] = []
-    params: List = []
+    parameters: List = []
 
     if free_text_search:
         conditions.append("(l.title ILIKE %s OR loc.city ILIKE %s)")
         search_term = f"{free_text_search}%"
-        params.append(search_term)
-        params.append(search_term)
+        parameters.append(search_term)
+        parameters.append(search_term)
     if status_name:
         conditions.append("ls.name = %s")
-        params.append(status_name)
+        parameters.append(status_name)
     if city:
         conditions.append("loc.city ILIKE %s")
-        params.append(f"%{city}%")
+        parameters.append(f"%{city}%")
     if min_price is not None:
         conditions.append("l.list_price >= %s")
-        params.append(min_price)
+        parameters.append(min_price)
     if max_price is not None:
         conditions.append("l.list_price <= %s")
-        params.append(max_price)
+        parameters.append(max_price)
     if min_rooms is not None:
         conditions.append("p.rooms >= %s")
-        params.append(min_rooms)
+        parameters.append(min_rooms)
     if max_rooms is not None:
         conditions.append("p.rooms <= %s")
-        params.append(max_rooms)
+        parameters.append(max_rooms)
     if property_type is not None:
         types = [t.strip() for t in property_type.split(",")]
         placeholders = ", ".join(["%s"] * len(types))
         conditions.append(f"pt.name IN ({placeholders})")
-        params.extend(types)
+        parameters.extend(types)
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
@@ -278,12 +278,12 @@ def list_listings(
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -346,16 +346,16 @@ def listing_media(
         ORDER BY position NULLS LAST, id
     """
 
-    params: List = [listing_id]
+    parameters: List = [listing_id]
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -378,16 +378,16 @@ def listing_open_houses(
         ORDER BY oh.starts_at
     """
 
-    params: List = [listing_id]
+    parameters: List = [listing_id]
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -438,16 +438,16 @@ def list_agents(
         ORDER BY a.id
     """
 
-    params: List = []
+    parameters: List = []
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -489,16 +489,16 @@ def list_agencies(
         ORDER BY name
     """
 
-    params: List = []
+    parameters: List = []
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -530,16 +530,16 @@ def list_users(
         LEFT JOIN user_roles ur ON u.id = ur.user_id;
     """
 
-    params: List = []
+    parameters: List = []
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -570,16 +570,16 @@ def user_saved_listings(
         ORDER BY sl.created_at DESC
     """
 
-    params: List = [user_id]
+    parameters: List = [user_id]
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -612,16 +612,16 @@ def user_saved_searches(
         ORDER BY created_at DESC
     """
 
-    params: List = [user_id]
+    parameters: List = [user_id]
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -637,21 +637,21 @@ def list_locations(
         SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
         FROM locations
     """
-    params: List = []
+    parameters: List = []
     if city:
         query += " WHERE city ILIKE %s"
-        params.append(f"%{city}%")
+        parameters.append(f"%{city}%")
 
     query += " ORDER BY id"
 
     if limit is not None:
         query += " LIMIT %s"
-        params.append(limit)
+        parameters.append(limit)
     if offset is not None:
         query += " OFFSET %s"
-        params.append(offset)
+        parameters.append(offset)
 
-    rows = fetch_all(connection, query, params)
+    rows = fetch_all(connection, query, parameters)
     return {"count": len(rows), "items": rows}
 
 
@@ -1430,7 +1430,7 @@ def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_d
         "DELETE FROM saved_listings WHERE user_id = %s AND listing_id = %s RETURNING id",
         (user_id, listing_id),
     )
-    _raise_if_not_found(deleted, "Saved listing")
+    _raise_if_not_found(deleted, "Favorite")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1445,6 +1445,7 @@ def delete_saved_search(user_id: int, search_id: int, connection=Depends(get_db)
         "DELETE FROM saved_searches WHERE user_id = %s AND id = %s RETURNING id",
         (user_id, search_id),
     )
+
     _raise_if_not_found(deleted, "Saved search")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1464,7 +1465,7 @@ def delete_agent(agent_id: int, connection=Depends(get_db)):
         "DELETE FROM agents WHERE id = %s RETURNING id",
         (agent_id,),
     )
-    _raise_if_not_found(deleted, "Agent deleted")
+    _raise_if_not_found(deleted, "Agent")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1492,7 +1493,7 @@ def delete_agency(agency_id: int, connection=Depends(get_db)):
         (agency_id,),
     )
 
-    _raise_if_not_found(deleted, "Agency Deleted")
+    _raise_if_not_found(deleted, "Agency")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1520,7 +1521,7 @@ def update_listing_title(
         ),
     )
 
-    return _raise_if_not_found(patched, "Listings title updated")
+    return _raise_if_not_found(patched, "Listings title")
 
 
 @app.patch("/agents/{agents_id}/change/name")
@@ -1553,7 +1554,7 @@ def update_agent_name(
         ),
     )
 
-    return _raise_if_not_found(patched, "Agent name updated")
+    return _raise_if_not_found(patched, "Agent name")
 
 
 @app.post("/token", response_model=Token)
