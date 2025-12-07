@@ -1,8 +1,8 @@
 from typing import List, Optional
 from db import fetch_all, fetch_one, execute_returning, execute_with_row_count
-from db_setup import get_connection, run_setup
+from db_setup import run_setup
 from fastapi import FastAPI, HTTPException, Depends, status, Response
-from psycopg2 import OperationalError, IntegrityError
+from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import (
@@ -25,22 +25,18 @@ from schemas import (
     AgentCreate,
     AgentUpdate,
     User,
-    UserInDB,
     Token,
-    TokenData,
 )
-from datetime import datetime, timedelta, timezone
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-
-
-SECRET_KEY = "secret-to-change-when-you-go-live-with-this-script"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+from datetime import timedelta
+from fastapi.security import OAuth2PasswordRequestForm
+from helpers import (
+    get_db,
+    raise_if_not_found,
+    handle_error,
+    get_current_user,
+    authenticate_user,
+    create_access_token,
+)
 
 
 tags_metadata = [
@@ -76,107 +72,6 @@ app.add_middleware(
 )
 
 run_setup()
-
-
-def get_db():
-    conection = get_connection()
-    try:
-        yield conection
-    except OperationalError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not connect to Database",
-        )
-    finally:
-        conection.close()
-
-
-def _raise_if_not_found(row, label: str):
-    if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"{label} not found"
-        )
-    return row
-
-
-def _handle_error(exc: IntegrityError, fallback: str = "Invalid data"):
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST, detail=fallback
-    ) from exc
-
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-
-def get_user(username: str, connection) -> Optional[UserInDB]:
-    user = fetch_one(
-        connection,
-        "SELECT id, email, password FROM users WHERE email = %s",
-        (username,),
-    )
-    if not user:
-        return None
-    return UserInDB(
-        username=user["email"],
-        id=user["id"],
-        hashed_password=user["password"],
-    )
-
-
-def authenticate_user(username: str, password: str, connection) -> Optional[UserInDB]:
-    user = get_user(username, connection)
-    if not user:
-        return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-# ==== Dependency for protection endpoints ====
-async def get_current_user(
-    token: str = Depends(oauth2_scheme), connection=Depends(get_db)
-) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
-        if payload is None:
-            raise credentials_exception
-
-        username: str | None = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-
-        if token_data.username is None:
-            raise credentials_exception
-
-        user = get_user(username=token_data.username, connection=connection)
-    except JWTError:
-        raise credentials_exception
-
-    if user is None:
-        raise credentials_exception
-
-    return user
 
 
 #########################################
@@ -329,7 +224,7 @@ def listing_detail(listing_id: int, connection=Depends(get_db)):
         LIMIT 1
     """
     row = fetch_one(connection, query, (listing_id,))
-    return _raise_if_not_found(row, "Listing")
+    return raise_if_not_found(row, "Listing")
 
 
 @app.get("/listings/{listing_id}/media", tags=["listings"])
@@ -413,7 +308,7 @@ def property_detail(property_id: int, connection=Depends(get_db)):
     """
 
     row = fetch_one(connection, query, (property_id,))
-    return _raise_if_not_found(row, "Property")
+    return raise_if_not_found(row, "Property")
 
 
 @app.get("/agents", tags=["agents"])
@@ -470,7 +365,7 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
         WHERE a.id = %s
     """
     row = fetch_one(connection, query, (agent_id,))
-    return _raise_if_not_found(row, "Agent")
+    return raise_if_not_found(row, "Agent")
 
 
 @app.get("/agencies", tags=["agencies"])
@@ -515,7 +410,7 @@ def agencies_datail(agency_id: int, connection=Depends(get_db)):
     """
 
     row = fetch_one(connection, query, (agency_id,))
-    return _raise_if_not_found(row, "Agencies")
+    return raise_if_not_found(row, "Agencies")
 
 
 @app.get("/users", tags=["users"])
@@ -683,7 +578,7 @@ def create_address(payload: AddressCreate, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create address")
+        handle_error(exc, "Could not create address")
 
 
 @app.post("/locations", status_code=status.HTTP_201_CREATED, tags=["properties"])
@@ -711,7 +606,7 @@ def create_location(payload: LocationCreate, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create location")
+        handle_error(exc, "Could not create location")
 
 
 @app.post("/users", status_code=status.HTTP_201_CREATED, tags=["users"])
@@ -738,7 +633,7 @@ def create_user(payload: UserCreate, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "User could not be created (email might already exist)")
+        handle_error(exc, "User could not be created (email might already exist)")
 
 
 @app.post("/properties", status_code=status.HTTP_201_CREATED, tags=["properties"])
@@ -771,7 +666,7 @@ def create_property(payload: PropertyCreate, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create property (check foreign keys)")
+        handle_error(exc, "Could not create property (check foreign keys)")
 
 
 @app.post(
@@ -812,7 +707,7 @@ def create_listing(payload: ListingCreate, connection=Depends(get_db)):
 
                 return listing
     except IntegrityError as exc:
-        _handle_error(
+        handle_error(
             exc,
             "Could not create listing (check agent, status, or property references)",
         )
@@ -846,7 +741,7 @@ def add_listing_media(
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not add listing media")
+        handle_error(exc, "Could not add listing media")
 
 
 @app.post(
@@ -877,7 +772,7 @@ def add_open_house(
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create open house entry")
+        handle_error(exc, "Could not create open house entry")
 
 
 @app.post(
@@ -896,7 +791,7 @@ def save_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Listing already saved or invalid reference")
+        handle_error(exc, "Listing already saved or invalid reference")
 
 
 @app.post(
@@ -938,13 +833,13 @@ def create_saved_search(
                     (row["id"], property_type.lower()),
                 )
 
-                _raise_if_not_found(
+                raise_if_not_found(
                     type_row, f"Could not save property type {property_type}"
                 )
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create saved search")
+        handle_error(exc, "Could not create saved search")
 
 
 @app.post("/agents/{agency_id}", status_code=status.HTTP_201_CREATED, tags=["agents"])
@@ -976,7 +871,7 @@ def create_agent(payload: AgentCreate, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create agent")
+        handle_error(exc, "Could not create agent")
 
 
 @app.post("/agencies", status_code=status.HTTP_201_CREATED, tags=["agencies"])
@@ -995,7 +890,7 @@ def create_agency(payload: AgencyCreate, connection=Depends(get_db)):
 
         return row
     except IntegrityError as exc:
-        _handle_error(exc, "Could not create saved search")
+        handle_error(exc, "Could not create saved search")
 
 
 #########################################
@@ -1031,9 +926,9 @@ def update_address(address_id: int, payload: AddressUpdate, connection=Depends(g
             ),
         )
 
-        return _raise_if_not_found(row, "Address")
+        return raise_if_not_found(row, "Address")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update address")
+        handle_error(exc, "Could not update address")
 
 
 @app.put("/locations/{location_id}", tags=["properties"])
@@ -1070,9 +965,9 @@ def update_location(
             ),
         )
 
-        return _raise_if_not_found(row, "Location")
+        return raise_if_not_found(row, "Location")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update location")
+        handle_error(exc, "Could not update location")
 
 
 @app.put("/users/{user_id}", tags=["users"])
@@ -1106,9 +1001,9 @@ def update_user(user_id: int, payload: UserUpdate, connection=Depends(get_db)):
             ),
         )
 
-        return _raise_if_not_found(row, "User")
+        return raise_if_not_found(row, "User")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update user")
+        handle_error(exc, "Could not update user")
 
 
 @app.put("/properties/{property_id}", tags=["properties"])
@@ -1152,9 +1047,9 @@ def update_property(
             ),
         )
 
-        return _raise_if_not_found(row, "Property")
+        return raise_if_not_found(row, "Property")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update property")
+        handle_error(exc, "Could not update property")
 
 
 @app.put("/listings/{listing_id}", tags=["listings"])
@@ -1198,9 +1093,9 @@ def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(g
                 )
                 listing = cursor.fetchone()
                 cursor.execute(link_query, (payload.property_id, listing_id))
-        return _raise_if_not_found(listing, "Listing")
+        return raise_if_not_found(listing, "Listing")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update listing")
+        handle_error(exc, "Could not update listing")
 
 
 @app.put("/users/{user_id}/searches/{search_id}", tags=["users"])
@@ -1245,7 +1140,7 @@ def update_saved_search(
                         user_id,
                     ),
                 )
-                saved_search = _raise_if_not_found(cursor.fetchone(), "Saved search")
+                saved_search = raise_if_not_found(cursor.fetchone(), "Saved search")
 
                 if payload.property_types is not None:
                     cursor.execute(
@@ -1256,14 +1151,14 @@ def update_saved_search(
                         cursor.execute(
                             property_type_insert, (search_id, property_type.lower())
                         )
-                        _raise_if_not_found(
+                        raise_if_not_found(
                             cursor.fetchone(),
                             f"Could not save property type {property_type}",
                         )
 
         return saved_search
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update saved search")
+        handle_error(exc, "Could not update saved search")
 
 
 @app.put("/agents/{agent_id}", tags=["agents"])
@@ -1305,9 +1200,9 @@ def update_agent(agent_id: int, payload: AgentUpdate, connection=Depends(get_db)
                 ),
             )
 
-        return _raise_if_not_found(row, "Saved search")
+        return raise_if_not_found(row, "Saved search")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update agent")
+        handle_error(exc, "Could not update agent")
 
 
 @app.put("/agenies/{agency_id}", tags=["agencies"])
@@ -1335,9 +1230,9 @@ def update_agency(agency_id: int, payload: AgencyUpdate, connection=Depends(get_
             ),
         )
 
-        return _raise_if_not_found(row, "Saved search")
+        return raise_if_not_found(row, "Saved search")
     except IntegrityError as exc:
-        _handle_error(exc, "Could not update agency")
+        handle_error(exc, "Could not update agency")
 
 
 #########################################
@@ -1364,7 +1259,7 @@ def delete_listing(listing_id: int, connection=Depends(get_db)):
                 "DELETE FROM listings WHERE id = %s RETURNING id", (listing_id,)
             )
             deleted = cursor.fetchone()
-    _raise_if_not_found(deleted, "Listing")
+    raise_if_not_found(deleted, "Listing")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1387,7 +1282,7 @@ def delete_property(property_id: int, connection=Depends(get_db)):
     deleted = execute_returning(
         connection, "DELETE FROM properties WHERE id = %s RETURNING id", (property_id,)
     )
-    _raise_if_not_found(deleted, "Property")
+    raise_if_not_found(deleted, "Property")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1400,7 +1295,7 @@ def delete_media(media_id: int, connection=Depends(get_db)):
     deleted = execute_returning(
         connection, "DELETE FROM listing_media WHERE id = %s RETURNING id", (media_id,)
     )
-    _raise_if_not_found(deleted, "Listing media")
+    raise_if_not_found(deleted, "Listing media")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1415,7 +1310,7 @@ def delete_open_house(open_house_id: int, connection=Depends(get_db)):
         "DELETE FROM open_houses WHERE id = %s RETURNING id",
         (open_house_id,),
     )
-    _raise_if_not_found(deleted, "Open house")
+    raise_if_not_found(deleted, "Open house")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1430,7 +1325,7 @@ def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_d
         "DELETE FROM saved_listings WHERE user_id = %s AND listing_id = %s RETURNING id",
         (user_id, listing_id),
     )
-    _raise_if_not_found(deleted, "Favorite")
+    raise_if_not_found(deleted, "Favorite")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1446,7 +1341,7 @@ def delete_saved_search(user_id: int, search_id: int, connection=Depends(get_db)
         (user_id, search_id),
     )
 
-    _raise_if_not_found(deleted, "Saved search")
+    raise_if_not_found(deleted, "Saved search")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -1465,7 +1360,7 @@ def delete_agent(agent_id: int, connection=Depends(get_db)):
         "DELETE FROM agents WHERE id = %s RETURNING id",
         (agent_id,),
     )
-    _raise_if_not_found(deleted, "Agent")
+    raise_if_not_found(deleted, "Agent")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1493,7 +1388,7 @@ def delete_agency(agency_id: int, connection=Depends(get_db)):
         (agency_id,),
     )
 
-    _raise_if_not_found(deleted, "Agency")
+    raise_if_not_found(deleted, "Agency")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1521,7 +1416,7 @@ def update_listing_title(
         ),
     )
 
-    return _raise_if_not_found(patched, "Listings title")
+    return raise_if_not_found(patched, "Listings title")
 
 
 @app.patch("/agents/{agents_id}/change/name")
@@ -1554,7 +1449,7 @@ def update_agent_name(
         ),
     )
 
-    return _raise_if_not_found(patched, "Agent name")
+    return raise_if_not_found(patched, "Agent name")
 
 
 @app.post("/token", response_model=Token)
@@ -1569,7 +1464,7 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
         data={"sub": user.username},
         expires_delta=access_token_expires,

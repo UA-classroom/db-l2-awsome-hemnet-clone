@@ -150,7 +150,7 @@ export function SearchResultsPage() {
       const filterPayload = toSavedSearchFilters(filters)
       const created = await createSavedSearch(userId, {
         query,
-        location: filters.location || filters.free_text_search || query,
+        location: filters.location /*|| filters.free_text_search || query*/,
         price_min: filters.price?.[0] ?? 0,
         price_max: filters.price?.[1] ?? 0,
         rooms_min: filters.minRooms ?? 0,

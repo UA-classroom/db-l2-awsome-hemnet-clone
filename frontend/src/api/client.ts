@@ -63,6 +63,13 @@ export type SavedSearch = {
 type ApiSavedSearch = Omit<SavedSearch, 'id' | 'filters'> & {
   id: string | number
   filters?: SavedSearchFilters | string | null
+  location?: string | null
+  price_min?: number | null
+  price_max?: number | null
+  rooms_min?: number | null
+  rooms_max?: number | null
+  property_types?: string[] | null
+  status_name?: string | null
 }
 
 type AutocompleteResponse = {
@@ -115,23 +122,86 @@ function parseSavedSearchFilters(filters?: SavedSearchFilters | string | null): 
     return undefined
   }
 
+  let raw: Record<string, unknown> | SavedSearchFilters
+
   if (typeof filters === 'string') {
     try {
-      return JSON.parse(filters) as SavedSearchFilters
+      raw = JSON.parse(filters) as Record<string, unknown>
     } catch (error) {
       console.warn('Failed to parse saved search filters', error)
       return undefined
     }
+  } else {
+    raw = filters
   }
 
-  return filters
+  const propertyTypes =
+    (Array.isArray((raw as any).propertyTypes) && (raw as any).propertyTypes) ||
+    (Array.isArray((raw as any).property_types) && (raw as any).property_types)
+
+  const priceMin = (raw as any).price_min
+  const priceMax = (raw as any).price_max
+  const roomsMin = (raw as any).rooms_min
+  const roomsMax = (raw as any).rooms_max
+  const status = (raw as any).status ?? (raw as any).status_name
+
+  const normalized: SavedSearchFilters = {
+    free_text_search: (raw as any).free_text_search ?? (raw as any).query,
+    location: (raw as any).location ?? (raw as any).city,
+    price:
+      Array.isArray((raw as any).price) && (raw as any).price.length === 2
+        ? ((raw as any).price as [number, number])
+        : typeof priceMin === 'number' && typeof priceMax === 'number'
+          ? [priceMin, priceMax]
+          : undefined,
+    minRooms: (raw as any).minRooms ?? (typeof roomsMin === 'number' ? roomsMin : undefined),
+    maxRooms:
+      (raw as any).maxRooms ??
+      (typeof roomsMax === 'number' || roomsMax === null ? (roomsMax as number | null) : undefined),
+    propertyTypes: propertyTypes ? propertyTypes.map((type: unknown) => String(type).toLowerCase()) : undefined,
+    status: typeof status === 'string' ? status : undefined,
+  }
+
+  return normalized
+}
+
+function deriveFiltersFromFlatFields(item: ApiSavedSearch): SavedSearchFilters | undefined {
+  const hasPriceRange = typeof item.price_min === 'number' && typeof item.price_max === 'number'
+  const hasMinRooms = typeof item.rooms_min === 'number'
+  const hasMaxRooms = typeof item.rooms_max === 'number' || item.rooms_max === null
+  const hasPropertyTypes = Array.isArray(item.property_types) && item.property_types.length > 0
+  const hasLocation = typeof item.location === 'string' && item.location.trim().length > 0
+  const hasStatus = typeof item.status_name === 'string' && item.status_name.trim().length > 0
+  const hasQuery = typeof item.query === 'string' && item.query.trim().length > 0
+
+  if (!(hasPriceRange || hasMinRooms || hasMaxRooms || hasPropertyTypes || hasLocation || hasStatus || hasQuery)) {
+    return undefined
+  }
+
+  const propertyTypes = hasPropertyTypes ? item.property_types?.filter(Boolean).map((type) => type.toLowerCase()) : undefined
+
+  return {
+    free_text_search: hasQuery ? item.query : undefined,
+    location: hasLocation ? item.location ?? undefined : undefined,
+    price: hasPriceRange ? [item.price_min as number, item.price_max as number] : undefined,
+    minRooms: hasMinRooms ? item.rooms_min ?? undefined : undefined,
+    maxRooms: hasMaxRooms ? (item.rooms_max === null ? null : (item.rooms_max as number)) : undefined,
+    propertyTypes,
+    status: hasStatus ? item.status_name ?? undefined : undefined,
+  }
 }
 
 function normalizeSavedSearch(item: ApiSavedSearch): SavedSearch {
+  const parsedFilters = parseSavedSearchFilters(item.filters)
+  const derivedFilters = parsedFilters ?? deriveFiltersFromFlatFields(item)
+
   return {
-    ...item,
     id: String(item.id),
-    filters: parseSavedSearchFilters(item.filters),
+    query: item.query,
+    send_email: item.send_email,
+    filters: derivedFilters,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
   }
 }
 
