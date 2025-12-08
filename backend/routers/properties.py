@@ -1,6 +1,7 @@
+from typing import Optional, List
 from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
-from db import fetch_one, execute_returning
+from db import fetch_one, execute_returning, fetch_all
 from helpers import (
     get_db,
     raise_if_not_found,
@@ -9,6 +10,8 @@ from helpers import (
 from schemas import (
     PropertyCreate,
     PropertyUpdate,
+    LocationUpdate,
+    LocationCreate,
 )
 
 
@@ -45,6 +48,35 @@ def property_detail(property_id: int, connection=Depends(get_db)):
 
     row = fetch_one(connection, query, (property_id,))
     return raise_if_not_found(row, "Property")
+
+
+@router.get("/locations")
+def list_locations(
+    city: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
+    query = """
+        SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
+        FROM locations
+    """
+    parameters: List = []
+    if city:
+        query += " WHERE city ILIKE %s"
+        parameters.append(f"%{city}%")
+
+    query += " ORDER BY id"
+
+    if limit is not None:
+        query += " LIMIT %s"
+        parameters.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        parameters.append(offset)
+
+    rows = fetch_all(connection, query, parameters)
+    return {"count": len(rows), "items": rows}
 
 
 #########################################
@@ -134,6 +166,73 @@ def update_property(
         return raise_if_not_found(row, "Property")
     except IntegrityError as exc:
         handle_error(exc, "Could not update property")
+
+
+@router.put("/locations/{location_id}")
+def update_location(
+    location_id: int, payload: LocationUpdate, connection=Depends(get_db)
+):
+    query = """
+        UPDATE locations
+        SET street_address = %s,
+            postal_code = %s,
+            city = %s,
+            municipality = COALESCE(%s, municipality),
+            county = COALESCE(%s, county),
+            country = %s,
+            latitude = COALESCE(%s, latitude),
+            longitude = COALESCE(%s, longitude)
+        WHERE id = %s
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+                payload.latitude,
+                payload.longitude,
+                location_id,
+            ),
+        )
+
+        return raise_if_not_found(row, "Location")
+    except IntegrityError as exc:
+        handle_error(exc, "Could not update location")
+
+
+@router.post("/locations", status_code=status.HTTP_201_CREATED, tags=["properties"])
+def create_location(payload: LocationCreate, connection=Depends(get_db)):
+    query = """
+        INSERT INTO locations (street_address, postal_code, city, municipality, county, country, latitude, longitude)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+                payload.latitude,
+                payload.longitude,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        handle_error(exc, "Could not create location")
 
 
 #########################################

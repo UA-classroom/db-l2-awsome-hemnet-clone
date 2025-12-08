@@ -28,6 +28,24 @@ router = APIRouter(
 #########################################
 
 
+@router.get("/autocomplete")
+def autocomplete_headings(search_term: str, connection=Depends(get_db)):
+    query = """
+        SELECT DISTINCT l.title
+        FROM listings l
+        JOIN listing_properties lp ON l.id = lp.listing_id
+        JOIN properties p ON lp.property_id = p.id
+        JOIN locations loc ON p.location_id = loc.id
+        WHERE l.title ILIKE %s OR loc.city ILIKE %s
+        ORDER BY l.title
+        LIMIT 10
+    """
+
+    like_term = f"{search_term}%"
+    rows = fetch_all(connection, query, (like_term, like_term))
+    return {"count": len(rows), "items": rows}
+
+
 @router.get("/")
 def list_listings(
     free_text_search: Optional[str] = None,
@@ -403,6 +421,37 @@ def delete_listing(listing_id: int, connection=Depends(get_db)):
             deleted = cursor.fetchone()
     raise_if_not_found(deleted, "Listing")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/listing-media/{media_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_media(media_id: int, connection=Depends(get_db)):
+    deleted = execute_returning(
+        connection, "DELETE FROM listing_media WHERE id = %s RETURNING id", (media_id,)
+    )
+    raise_if_not_found(deleted, "Listing media")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/open-houses/{open_house_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_open_house(open_house_id: int, connection=Depends(get_db)):
+    deleted = execute_returning(
+        connection,
+        "DELETE FROM open_houses WHERE id = %s RETURNING id",
+        (open_house_id,),
+    )
+    raise_if_not_found(deleted, "Open house")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+#########################################
+#               PATCH                   #
+#########################################
 
 
 @router.patch("/{listing_id}/change/title")

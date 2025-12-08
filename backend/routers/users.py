@@ -9,6 +9,8 @@ from schemas import (
     SavedSearchCreate,
     SavedSearchUpdate,
     UserUpdate,
+    AddressCreate,
+    AddressUpdate,
 )
 
 router = APIRouter(
@@ -224,6 +226,32 @@ def create_saved_search(
         handle_error(exc, "Could not create saved search")
 
 
+@router.post("/addresses", status_code=status.HTTP_201_CREATED)
+def create_address(payload: AddressCreate, connection=Depends(get_db)):
+    query = """
+        INSERT INTO addresses (street_address, postal_code, city, municipality, county, country)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+            ),
+        )
+
+        return row
+    except IntegrityError as exc:
+        handle_error(exc, "Could not create address")
+
+
 #########################################
 #               PUT                     #
 #########################################
@@ -328,15 +356,47 @@ def update_saved_search(
         handle_error(exc, "Could not update saved search")
 
 
+@router.put("/addresses/{address_id}")
+def update_address(address_id: int, payload: AddressUpdate, connection=Depends(get_db)):
+    query = """
+        UPDATE addresses
+        SET street_address = %s,
+            postal_code = %s,
+            city = %s,
+            municipality = COALESCE(%s, municipality),
+            county = COALESCE(%s, county),
+            country = %s
+        WHERE id = %s
+        RETURNING *
+    """
+    try:
+        row = execute_returning(
+            connection,
+            query,
+            (
+                payload.street_address,
+                payload.postal_code,
+                payload.city,
+                payload.municipality,
+                payload.county,
+                payload.country,
+                address_id,
+            ),
+        )
+
+        return raise_if_not_found(row, "Address")
+    except IntegrityError as exc:
+        handle_error(exc, "Could not update address")
+
+
 #########################################
 #               DELETE                  #
 #########################################
 
 
 @router.delete(
-    "/users/{user_id}/saved-listings/{listing_id}",
+    "/{user_id}/saved-listings/{listing_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    tags=["users"],
 )
 def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
     deleted = execute_returning(
@@ -349,9 +409,8 @@ def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_d
 
 
 @router.delete(
-    "/users/{user_id}/searches/{search_id}",
+    "/{user_id}/searches/{search_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    tags=["users"],
 )
 def delete_saved_search(user_id: int, search_id: int, connection=Depends(get_db)):
     deleted = execute_returning(

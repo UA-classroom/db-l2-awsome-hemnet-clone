@@ -239,7 +239,7 @@ export async function fetchAutocomplete(searchTerm: string, signal?: AbortSignal
   const params = new URLSearchParams({ search_term: trimmed })
 
   try {
-    const data = await fetchJson<AutocompleteResponse>(`/autocomplete?${params.toString()}`, { signal })
+    const data = await fetchJson<AutocompleteResponse>(`/listings/autocomplete?${params.toString()}`, { signal })
     return (data.items ?? []).map((item) => item.title).filter((title): title is string => Boolean(title))
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

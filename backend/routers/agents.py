@@ -193,6 +193,11 @@ def delete_agent(agent_id: int, connection=Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+#########################################
+#               PATCH                   #
+#########################################
+
+
 @router.patch("/{agents_id}/change/name")
 def update_agent_name(
     agent_id: int,
