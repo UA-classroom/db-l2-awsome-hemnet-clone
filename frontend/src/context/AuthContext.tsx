@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       setError(null)
       try {
-        const res = await fetch(`${BASE_URL}/get/me`, {
+        const res = await fetch(`${BASE_URL}/users/me`, {
           headers: {
             Authorization: `Bearer ${currentToken}`,
           },

@@ -24,6 +24,11 @@ router = APIRouter(
 #########################################
 
 
+@router.get("/me", tags=["protected"])
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return {"user_id": current_user.id, "username": current_user.username}
+
+
 @router.get("/")
 def list_users(
     limit: Optional[int] = None,

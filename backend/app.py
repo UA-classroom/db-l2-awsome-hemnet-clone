@@ -6,7 +6,6 @@ from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from helpers import (
     get_db,
-    get_current_user,
     authenticate_user,
     create_access_token,
 )
@@ -75,8 +74,3 @@ async def login_for_access_token(
     )
 
     return {"access_token": access_token}
-
-
-@app.get("/get/me", tags=["protected"])
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"user_id": current_user.id, "username": current_user.username}
