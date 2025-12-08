@@ -78,11 +78,12 @@ type AutocompleteResponse = {
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers)
+  headers.set('Content-Type', 'application/json')
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
     ...init,
+    headers,
   })
 
   if (!res.ok) {
@@ -260,9 +261,17 @@ export async function fetchProperty(id: string): Promise<Property | null> {
   }
 }
 
-export async function fetchSavedListings(userId: number): Promise<string[]> {
+export async function fetchSavedListings(userId: number, token: string): Promise<string[]> {
+  if (!token) {
+    throw new Error('Missing auth token for fetching saved listings')
+  }
+
   try {
-    const data = await fetchJson<{ items?: { listing_id: number | string }[] }>(`/users/${userId}/saved-listings`)
+    const data = await fetchJson<{ items?: { listing_id: number | string }[] }>(`/users/${userId}/saved-listings`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
     return (data.items ?? []).map((item) => String(item.listing_id))
   } catch (error) {
     console.error('Failed to fetch saved listings', error)
@@ -270,10 +279,15 @@ export async function fetchSavedListings(userId: number): Promise<string[]> {
   }
 }
 
-export async function saveFavoriteListing(userId: number, listingId: string): Promise<void> {
+export async function saveFavoriteListing(userId: number, listingId: string, token: string): Promise<void> {
+  if (!token) {
+    throw new Error('Missing auth token for saving favorite')
+  }
+
   const res = await fetch(`${BASE_URL}/users/${userId}/saved-listings?listing_id=${listingId}`, {
     method: 'POST',
     headers: {
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   })
@@ -284,9 +298,16 @@ export async function saveFavoriteListing(userId: number, listingId: string): Pr
   }
 }
 
-export async function deleteFavoriteListing(userId: number, listingId: string): Promise<void> {
+export async function deleteFavoriteListing(userId: number, listingId: string, token: string): Promise<void> {
+  if (!token) {
+    throw new Error('Missing auth token for deleting favorite')
+  }
+
   const res = await fetch(`${BASE_URL}/users/${userId}/saved-listings/${listingId}`, {
     method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   })
 
   if (!res.ok) {
@@ -295,13 +316,26 @@ export async function deleteFavoriteListing(userId: number, listingId: string): 
   }
 }
 
-export async function fetchSavedSearches(userId: number, limit?: number, offset?: number): Promise<SavedSearch[]> {
+export async function fetchSavedSearches(
+  userId: number,
+  token: string,
+  limit?: number,
+  offset?: number,
+): Promise<SavedSearch[]> {
+  if (!token) {
+    throw new Error('Missing auth token for fetching saved searches')
+  }
+
   const params = new URLSearchParams()
   if (limit !== undefined) params.append('limit', String(limit))
   if (offset !== undefined) params.append('offset', String(offset))
 
   try {
-    const data = await fetchJson<{ items?: ApiSavedSearch[] }>(`/users/${userId}/searches?${params.toString()}`)
+    const data = await fetchJson<{ items?: ApiSavedSearch[] }>(`/users/${userId}/searches?${params.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
     return data.items?.map(normalizeSavedSearch) ?? []
   } catch (error) {
     console.error('Failed to fetch saved searches', error)
@@ -320,10 +354,14 @@ export type CreateSavedSearchPayload = {
   send_email: boolean
 }
 
-export async function createSavedSearch(userId: number, payload: CreateSavedSearchPayload) {
+export async function createSavedSearch(userId: number, payload: CreateSavedSearchPayload, token: string) {
+  if (!token) {
+    throw new Error('Missing auth token for creating saved search')
+  }
+
   const res = await fetch(`${BASE_URL}/users/${userId}/searches`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
   })
 
@@ -336,9 +374,16 @@ export async function createSavedSearch(userId: number, payload: CreateSavedSear
   return normalizeSavedSearch(data)
 }
 
-export async function deleteSavedSearch(userId: number, searchId: string) {
+export async function deleteSavedSearch(userId: number, searchId: string, token: string) {
+  if (!token) {
+    throw new Error('Missing auth token for deleting saved search')
+  }
+
   const res = await fetch(`${BASE_URL}/users/${userId}/searches/${searchId}`, {
     method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   })
 
   if (!res.ok) {

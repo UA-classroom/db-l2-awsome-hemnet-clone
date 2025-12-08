@@ -53,7 +53,7 @@ const hydrateFiltersFromSavedSearch = (search: SavedSearch): FilterState => {
 export function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { favorites, toggle } = useFavorites()
-  const { userId, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { userId, isAuthenticated, isLoading: authLoading, token } = useAuth()
   const [results, setResults] = useState<Property[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,20 +111,20 @@ export function SearchResultsPage() {
   }, [filters])
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !token) {
       setSavedSearches([])
       return
     }
 
     let cancelled = false
-    fetchSavedSearches(userId, 20, 0).then((items) => {
+    fetchSavedSearches(userId, token, 20, 0).then((items) => {
       if (!cancelled) setSavedSearches(items)
     })
 
     return () => {
       cancelled = true
     }
-  }, [userId])
+  }, [token, userId])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -137,7 +137,7 @@ export function SearchResultsPage() {
       setError('Log in to save this search.')
       return
     }
-    if (!userId) {
+    if (!userId || !token) {
       setError('Loading your account... please try again in a moment.')
       return
     }
@@ -157,7 +157,7 @@ export function SearchResultsPage() {
         rooms_max: Number.isFinite(filters.maxRooms) ? filters.maxRooms : 0,
         property_types: filters.propertyTypes.map((type) => type.toLowerCase()),
         send_email: sendEmail,
-      })
+      }, token)
       const normalized = created.filters ? created : { ...created, filters: filterPayload }
       setSavedSearches((prev) => [normalized, ...prev])
     } catch (err) {
@@ -167,9 +167,9 @@ export function SearchResultsPage() {
   }
 
   const removeSavedSearch = async (id: string) => {
-    if (!userId) return
+    if (!userId || !token) return
     try {
-      await deleteSavedSearch(userId, id)
+      await deleteSavedSearch(userId, id, token)
       setSavedSearches((prev) => prev.filter((item) => item.id !== id))
     } catch (err) {
       console.error('Failed to delete saved search', err)

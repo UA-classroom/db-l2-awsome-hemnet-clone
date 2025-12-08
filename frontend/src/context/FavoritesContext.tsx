@@ -11,25 +11,25 @@ const FavoritesContext = createContext<{
 })
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const { userId, isAuthenticated } = useAuth()
+  const { userId, isAuthenticated, token } = useAuth()
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     setFavorites(new Set())
-    if (!isAuthenticated || !userId) return
+    if (!isAuthenticated || !userId || !token) return
 
     let cancelled = false
-    fetchSavedListings(userId).then((items) => {
+    fetchSavedListings(userId, token).then((items) => {
       if (cancelled) return
       setFavorites(new Set(items))
     })
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, userId])
+  }, [isAuthenticated, token, userId])
 
   const toggle = useCallback((id: string) => {
-    if (!isAuthenticated || !userId) {
+    if (!isAuthenticated || !userId || !token) {
       console.warn('Favorites toggle ignored: no authenticated user.')
       return
     }
@@ -49,9 +49,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     ;(async () => {
       try {
         if (wasFavorite) {
-          await deleteFavoriteListing(userId, id)
+          await deleteFavoriteListing(userId, id, token)
         } else {
-          await saveFavoriteListing(userId, id)
+          await saveFavoriteListing(userId, id, token)
         }
       } catch (error) {
         console.error('Favorite toggle failed', error)
@@ -67,7 +67,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         })
       }
     })()
-  }, [favorites, isAuthenticated, userId])
+  }, [favorites, isAuthenticated, token, userId])
 
   const value = useMemo(() => ({ favorites, toggle }), [favorites, toggle])
 

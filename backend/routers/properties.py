@@ -6,12 +6,14 @@ from helpers import (
     get_db,
     raise_if_not_found,
     handle_error,
+    get_current_user,
 )
 from schemas import (
     PropertyCreate,
     PropertyUpdate,
     LocationUpdate,
     LocationCreate,
+    User,
 )
 
 
@@ -85,7 +87,11 @@ def list_locations(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_property(payload: PropertyCreate, connection=Depends(get_db)):
+def create_property(
+    payload: PropertyCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO properties (
             location_id, property_type_id, tenure_id, year_built, living_area_sqm,
@@ -124,7 +130,10 @@ def create_property(payload: PropertyCreate, connection=Depends(get_db)):
 
 @router.put("/{property_id}")
 def update_property(
-    property_id: int, payload: PropertyUpdate, connection=Depends(get_db)
+    property_id: int,
+    payload: PropertyUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         UPDATE properties
@@ -170,7 +179,10 @@ def update_property(
 
 @router.put("/locations/{location_id}")
 def update_location(
-    location_id: int, payload: LocationUpdate, connection=Depends(get_db)
+    location_id: int,
+    payload: LocationUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         UPDATE locations
@@ -207,8 +219,12 @@ def update_location(
         handle_error(exc, "Could not update location")
 
 
-@router.post("/locations", status_code=status.HTTP_201_CREATED, tags=["properties"])
-def create_location(payload: LocationCreate, connection=Depends(get_db)):
+@router.post("/locations", status_code=status.HTTP_201_CREATED)
+def create_location(
+    payload: LocationCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO locations (street_address, postal_code, city, municipality, county, country, latitude, longitude)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -243,9 +259,12 @@ def create_location(payload: LocationCreate, connection=Depends(get_db)):
 @router.delete(
     "/properties/{property_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    tags=["properties"],
 )
-def delete_property(property_id: int, connection=Depends(get_db)):
+def delete_property(
+    property_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     in_use = fetch_one(
         connection,
         "SELECT COUNT(*) AS count FROM listing_properties WHERE property_id = %s",

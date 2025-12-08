@@ -6,10 +6,12 @@ from helpers import (
     get_db,
     raise_if_not_found,
     handle_error,
+    get_current_user,
 )
 from schemas import (
     AgencyCreate,
     AgencyUpdate,
+    User,
 )
 
 
@@ -74,7 +76,11 @@ def agencies_datail(agency_id: int, connection=Depends(get_db)):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_agency(payload: AgencyCreate, connection=Depends(get_db)):
+def create_agency(
+    payload: AgencyCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO agencies (name, org_number, phone, website, created_at)
         VALUES (%s, %s, %s, %s, NOW())
@@ -98,7 +104,12 @@ def create_agency(payload: AgencyCreate, connection=Depends(get_db)):
 
 
 @router.put("/{agency_id}")
-def update_agency(agency_id: int, payload: AgencyUpdate, connection=Depends(get_db)):
+def update_agency(
+    agency_id: int,
+    payload: AgencyUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         UPDATE agencies
         SET name = COALESCE(%s, name),
@@ -136,7 +147,11 @@ def update_agency(agency_id: int, payload: AgencyUpdate, connection=Depends(get_
     "/{agency_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_agency(agency_id: int, connection=Depends(get_db)):
+def delete_agency(
+    agency_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     in_use = fetch_one(
         connection,
         "SELECT COUNT(*) AS count FROM agent_agencies WHERE agency_id = %s",

@@ -88,7 +88,11 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
 
 
 @router.post("/{agency_id}", status_code=status.HTTP_201_CREATED)
-def create_agent(payload: AgentCreate, connection=Depends(get_db)):
+def create_agent(
+    payload: AgentCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO agents (user_id, title, license_number, bio, created_at)
         VALUES (%s, %s, %s, %s, NOW())
@@ -125,7 +129,12 @@ def create_agent(payload: AgentCreate, connection=Depends(get_db)):
 
 
 @router.put("/{agent_id}")
-def update_agent(agent_id: int, payload: AgentUpdate, connection=Depends(get_db)):
+def update_agent(
+    agent_id: int,
+    payload: AgentUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         UPDATE agents
         SET user_id = COALESCE(%s, user_id),
@@ -178,7 +187,11 @@ def update_agent(agent_id: int, payload: AgentUpdate, connection=Depends(get_db)
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["agents"],
 )
-def delete_agent(agent_id: int, connection=Depends(get_db)):
+def delete_agent(
+    agent_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     execute_returning(
         connection, "DELETE FROM agent_agencies WHERE agent_id = %s", (agent_id,)
     )

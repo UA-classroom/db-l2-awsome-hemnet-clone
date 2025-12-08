@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, status, Response
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 from db import fetch_all, execute_returning
-from helpers import get_db, handle_error, raise_if_not_found
+from helpers import get_db, handle_error, raise_if_not_found, get_current_user
 from schemas import (
     UserCreate,
     SavedSearchCreate,
@@ -11,6 +11,7 @@ from schemas import (
     UserUpdate,
     AddressCreate,
     AddressUpdate,
+    User,
 )
 
 router = APIRouter(
@@ -23,11 +24,12 @@ router = APIRouter(
 #########################################
 
 
-@router.get("/", tags=["users"])
+@router.get("/")
 def list_users(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         SELECT u.first_name, u.last_name, u.email, ur.name AS role
@@ -54,6 +56,7 @@ def user_saved_listings(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         SELECT sl.id,
@@ -94,6 +97,7 @@ def user_saved_searches(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         SELECT ss.id,
@@ -136,7 +140,11 @@ def user_saved_searches(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, connection=Depends(get_db)):
+def create_user(
+    payload: UserCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO users (email, password, first_name, last_name, phone, role_id, address_id)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -166,7 +174,12 @@ def create_user(payload: UserCreate, connection=Depends(get_db)):
     "/{user_id}/saved-listings",
     status_code=status.HTTP_201_CREATED,
 )
-def save_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
+def save_listing(
+    user_id: int,
+    listing_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO saved_listings (user_id, listing_id)
         VALUES (%s, %s)
@@ -182,7 +195,10 @@ def save_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
 
 @router.post("/{user_id}/searches", status_code=status.HTTP_201_CREATED)
 def create_saved_search(
-    user_id: int, payload: SavedSearchCreate, connection=Depends(get_db)
+    user_id: int,
+    payload: SavedSearchCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         INSERT INTO saved_searches (user_id, query, location, price_min, price_max, rooms_min, rooms_max, send_email)
@@ -227,7 +243,11 @@ def create_saved_search(
 
 
 @router.post("/addresses", status_code=status.HTTP_201_CREATED)
-def create_address(payload: AddressCreate, connection=Depends(get_db)):
+def create_address(
+    payload: AddressCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         INSERT INTO addresses (street_address, postal_code, city, municipality, county, country)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -258,7 +278,12 @@ def create_address(payload: AddressCreate, connection=Depends(get_db)):
 
 
 @router.put("/{user_id}")
-def update_user(user_id: int, payload: UserUpdate, connection=Depends(get_db)):
+def update_user(
+    user_id: int,
+    payload: UserUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         UPDATE users
         SET email = COALESCE(%s, email),
@@ -299,6 +324,7 @@ def update_saved_search(
     search_id: int,
     payload: SavedSearchUpdate,
     connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     update_query = """
         UPDATE saved_searches
@@ -357,7 +383,12 @@ def update_saved_search(
 
 
 @router.put("/addresses/{address_id}")
-def update_address(address_id: int, payload: AddressUpdate, connection=Depends(get_db)):
+def update_address(
+    address_id: int,
+    payload: AddressUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     query = """
         UPDATE addresses
         SET street_address = %s,
@@ -398,7 +429,12 @@ def update_address(address_id: int, payload: AddressUpdate, connection=Depends(g
     "/{user_id}/saved-listings/{listing_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_db)):
+def delete_saved_listing(
+    user_id: int,
+    listing_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     deleted = execute_returning(
         connection,
         "DELETE FROM saved_listings WHERE user_id = %s AND listing_id = %s RETURNING id",
@@ -412,7 +448,12 @@ def delete_saved_listing(user_id: int, listing_id: int, connection=Depends(get_d
     "/{user_id}/searches/{search_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_saved_search(user_id: int, search_id: int, connection=Depends(get_db)):
+def delete_saved_search(
+    user_id: int,
+    search_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     deleted = execute_returning(
         connection,
         "DELETE FROM saved_searches WHERE user_id = %s AND id = %s RETURNING id",

@@ -244,9 +244,12 @@ def listing_open_houses(
     "/",
     status_code=status.HTTP_201_CREATED,
     description="Add a property first to get the property ID",
-    tags=["listings"],
 )
-def create_listing(payload: ListingCreate, connection=Depends(get_db)):
+def create_listing(
+    payload: ListingCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     listing_query = """
         INSERT INTO listings (
             agent_id, title, description, status_id, list_price, price_type_id,
@@ -287,10 +290,12 @@ def create_listing(payload: ListingCreate, connection=Depends(get_db)):
 @router.post(
     "/{listing_id}/media",
     status_code=status.HTTP_201_CREATED,
-    tags=["listings"],
 )
 def add_listing_media(
-    listing_id: int, payload: ListingMediaCreate, connection=Depends(get_db)
+    listing_id: int,
+    payload: ListingMediaCreate,
+    _: User = Depends(get_current_user),
+    connection=Depends(get_db),
 ):
     query = """
         INSERT INTO listing_media (listing_id, media_type_id, url, caption, position)
@@ -318,10 +323,12 @@ def add_listing_media(
 @router.post(
     "/{listing_id}/open-houses",
     status_code=status.HTTP_201_CREATED,
-    tags=["listings"],
 )
 def add_open_house(
-    listing_id: int, payload: OpenHouseCreate, connection=Depends(get_db)
+    listing_id: int,
+    payload: OpenHouseCreate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = """
         INSERT INTO open_houses (listing_id, starts_at, ends_at, type_id, note)
@@ -352,7 +359,12 @@ def add_open_house(
 
 
 @router.put("/{listing_id}")
-def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(get_db)):
+def update_listing(
+    listing_id: int,
+    payload: ListingUpdate,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     listing_query = """
         UPDATE listings
         SET agent_id = COALESCE(%s, agent_id),
@@ -403,7 +415,11 @@ def update_listing(listing_id: int, payload: ListingUpdate, connection=Depends(g
 
 
 @router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_listing(listing_id: int, connection=Depends(get_db)):
+def delete_listing(
+    listing_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     cleanup_queries = [
         "DELETE FROM listing_media WHERE listing_id = %s",
         "DELETE FROM open_houses WHERE listing_id = %s",
@@ -427,7 +443,11 @@ def delete_listing(listing_id: int, connection=Depends(get_db)):
     "/listing-media/{media_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_media(media_id: int, connection=Depends(get_db)):
+def delete_media(
+    media_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     deleted = execute_returning(
         connection, "DELETE FROM listing_media WHERE id = %s RETURNING id", (media_id,)
     )
@@ -439,7 +459,11 @@ def delete_media(media_id: int, connection=Depends(get_db)):
     "/open-houses/{open_house_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_open_house(open_house_id: int, connection=Depends(get_db)):
+def delete_open_house(
+    open_house_id: int,
+    connection=Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     deleted = execute_returning(
         connection,
         "DELETE FROM open_houses WHERE id = %s RETURNING id",
