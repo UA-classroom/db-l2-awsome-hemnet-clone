@@ -3,6 +3,7 @@ from .agencies import router as agencies_router
 from .agents import router as agents_router
 from .listings import router as listings_router
 from .properties import router as properties_router
+from .token import router as token_router
 
 all_routers = [
     users_router,
@@ -10,4 +11,5 @@ all_routers = [
     agents_router,
     listings_router,
     properties_router,
+    token_router,
 ]
