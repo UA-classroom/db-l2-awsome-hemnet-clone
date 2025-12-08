@@ -43,10 +43,10 @@ def _create_tables() -> bool:
         if version is not None and version[0] >= 1:
             return False
 
-        with open("schema.sql", "r", encoding="utf-8") as f:
-            sql = f.read()
+        with open("schema.sql", "r", encoding="utf-8") as file:
+            sql = file.read()
 
-        statements = [s.strip() for s in sql.split(";") if s.strip()]
+        statements = [string.strip() for string in sql.split(";") if string.strip()]
 
         for statement in statements:
             cursor.execute(statement)
@@ -65,10 +65,10 @@ def _seed_tables():
     """
     connection = get_connection()
     with connection, connection.cursor() as cursor:
-        with open("seed_inserts.sql", "r", encoding="utf-8") as f:
-            sql = f.read()
+        with open("seed_inserts.sql", "r", encoding="utf-8") as file:
+            sql = file.read()
 
-        statements = [s.strip() for s in sql.split(";") if s.strip()]
+        statements = [string.strip() for string in sql.split(";") if string.strip()]
 
         for statement in statements:
             cursor.execute(statement)
