@@ -11,8 +11,3 @@ all_routers = [
     listings_router,
     properties_router,
 ]
-
-# kör detta i app.py när du har fakturerat ut alla enpoints ur app.py
-# from routers import all_routers
-# for r in all_routers:
-#     app.include_router(r)
