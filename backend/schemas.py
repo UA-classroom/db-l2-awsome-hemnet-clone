@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
@@ -29,6 +29,18 @@ class LocationCreate(BaseModel):
 
 class LocationUpdate(LocationCreate):
     pass
+
+
+class LocationOut(BaseModel):
+    id: int
+    street_address: str
+    postal_code: str
+    city: str
+    municipality: str
+    county: str
+    country: str
+    latitude: float
+    longitude: float
 
 
 class UserCreate(BaseModel):
@@ -69,6 +81,23 @@ class PropertyUpdate(PropertyCreate):
     pass
 
 
+class PropertyOut(BaseModel):
+    id: int
+    location_id: int
+    property_type_id: int
+    tenure_id: int
+    year_built: int
+    living_area_sqm: float
+    additional_area_sqm: float
+    plot_area_sqm: float
+    rooms: float
+    floor: int
+    monthly_fee: float
+    energy_class: str
+    created_at: datetime
+    updated_at: datetime
+
+
 class ListingCreate(BaseModel):
     agent_id: int
     title: str
@@ -84,7 +113,7 @@ class ListingCreate(BaseModel):
 
 class ListingUpdate(BaseModel):
     agent_id: Optional[int] = None
-    title: str
+    title: Optional[str] = None
     description: Optional[str] = None
     status_id: Optional[int] = None
     list_price: Optional[float] = None
@@ -95,11 +124,54 @@ class ListingUpdate(BaseModel):
     property_id: Optional[int] = None
 
 
+class ListingItem(BaseModel):
+    id: int
+    title: str
+    status: str
+    list_price: float
+    property_type: str
+    rooms: float
+    living_area_sqm: int
+    city: str
+    image: Optional[str] = None
+
+
+class ListingOut(BaseModel):
+    count: int
+    items: List[ListingItem]
+
+
 class ListingMediaCreate(BaseModel):
     media_type_id: int
     url: str
     caption: Optional[str] = None
     position: Optional[int] = None
+
+
+class ListingDetailOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    status: str
+    list_price: float
+    price_type_id: int
+    published_at: datetime
+    expires_at: datetime
+    external_ref: str
+    property_type: str
+    tenure: str
+    rooms: float
+    living_area_sqm: float
+    plot_area_sqm: Optional[float] = None
+    energy_class: Optional[str] = None
+    year_built: Optional[int] = None
+    street_address: str
+    postal_code: str
+    city: str
+    municipality: str
+    agent_name: str
+    agent_phone: str
+    agency: str
 
 
 class OpenHouseCreate(BaseModel):
@@ -176,3 +248,12 @@ class User(BaseModel):
 
 class UserInDB(User):
     hashed_password: str
+
+
+class Item(BaseModel):
+    title: str
+
+
+class AutocompleteOut(BaseModel):
+    count: int
+    items: List[Item]

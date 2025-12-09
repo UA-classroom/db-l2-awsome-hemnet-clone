@@ -15,6 +15,9 @@ from schemas import (
     OpenHouseCreate,
     ListingUpdate,
     User,
+    AutocompleteOut,
+    ListingOut,
+    ListingDetailOut,
 )
 
 
@@ -28,7 +31,7 @@ router = APIRouter(
 #########################################
 
 
-@router.get("/autocomplete")
+@router.get("/autocomplete", response_model=AutocompleteOut)
 def autocomplete_headings(search_term: str, connection=Depends(get_db)):
     query = """
         SELECT DISTINCT l.title
@@ -46,7 +49,7 @@ def autocomplete_headings(search_term: str, connection=Depends(get_db)):
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/")
+@router.get("/", response_model=ListingOut)
 def list_listings(
     free_text_search: Optional[str] = None,
     city: Optional[str] = None,
@@ -131,7 +134,7 @@ def list_listings(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{listing_id}")
+@router.get("/{listing_id}", response_model=ListingDetailOut)
 def listing_detail(listing_id: int, connection=Depends(get_db)):
     query = """
         SELECT l.id,

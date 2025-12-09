@@ -1,7 +1,6 @@
-from typing import Optional, List
 from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
-from db import fetch_one, execute_returning, fetch_all
+from db import fetch_one, execute_returning
 from helpers import (
     get_db,
     raise_if_not_found,
@@ -14,6 +13,8 @@ from schemas import (
     LocationUpdate,
     LocationCreate,
     User,
+    PropertyOut,
+    LocationOut,
 )
 
 
@@ -52,41 +53,12 @@ def property_detail(property_id: int, connection=Depends(get_db)):
     return raise_if_not_found(row, "Property")
 
 
-@router.get("/locations")
-def list_locations(
-    city: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    connection=Depends(get_db),
-):
-    query = """
-        SELECT id, street_address, postal_code, city, municipality, county, country, latitude, longitude
-        FROM locations
-    """
-    parameters: List = []
-    if city:
-        query += " WHERE city ILIKE %s"
-        parameters.append(f"%{city}%")
-
-    query += " ORDER BY id"
-
-    if limit is not None:
-        query += " LIMIT %s"
-        parameters.append(limit)
-    if offset is not None:
-        query += " OFFSET %s"
-        parameters.append(offset)
-
-    rows = fetch_all(connection, query, parameters)
-    return {"count": len(rows), "items": rows}
-
-
 #########################################
 #                POST                   #
 #########################################
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=PropertyOut)
 def create_property(
     payload: PropertyCreate,
     connection=Depends(get_db),
@@ -128,7 +100,7 @@ def create_property(
 #########################################
 
 
-@router.put("/{property_id}")
+@router.put("/{property_id}", response_model=PropertyOut)
 def update_property(
     property_id: int,
     payload: PropertyUpdate,
@@ -177,7 +149,7 @@ def update_property(
         handle_error(exc, "Could not update property")
 
 
-@router.put("/locations/{location_id}")
+@router.put("/locations/{location_id}", response_model=LocationOut)
 def update_location(
     location_id: int,
     payload: LocationUpdate,
@@ -219,7 +191,9 @@ def update_location(
         handle_error(exc, "Could not update location")
 
 
-@router.post("/locations", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/locations", status_code=status.HTTP_201_CREATED, response_model=LocationOut
+)
 def create_location(
     payload: LocationCreate,
     connection=Depends(get_db),
