@@ -12,6 +12,8 @@ from schemas import (
     AddressCreate,
     AddressUpdate,
     User,
+    UserMeOut,
+    UserOut,
 )
 
 router = APIRouter(
@@ -24,17 +26,16 @@ router = APIRouter(
 #########################################
 
 
-@router.get("/me", tags=["protected"])
+@router.get("/me", response_model=UserMeOut)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return {"user_id": current_user.id, "username": current_user.username}
 
 
-@router.get("/")
+@router.get("/", response_model=UserOut)
 def list_users(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     connection=Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
     query = """
         SELECT u.first_name, u.last_name, u.email, ur.name AS role

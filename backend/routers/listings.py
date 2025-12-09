@@ -18,6 +18,9 @@ from schemas import (
     AutocompleteOut,
     ListingOut,
     ListingDetailOut,
+    ListingMediaOut,
+    OpenHousesOut,
+    OpenHouseOut,
 )
 
 
@@ -179,7 +182,7 @@ def listing_detail(listing_id: int, connection=Depends(get_db)):
     return raise_if_not_found(row, "Listing")
 
 
-@router.get("/{listing_id}/media")
+@router.get("/{listing_id}/media", response_model=ListingMediaOut)
 def listing_media(
     listing_id: int,
     limit: Optional[int] = None,
@@ -206,7 +209,7 @@ def listing_media(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/open/houses")
+@router.get("/open/houses", response_model=OpenHousesOut)
 def listing_open_houses(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
@@ -237,7 +240,7 @@ def listing_open_houses(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{listing_id}/open/houses")
+@router.get("/{listing_id}/open/houses", response_model=OpenHouseOut)
 def open_houses_for_listing(
     listing_id: int,
     limit: Optional[int] = None,

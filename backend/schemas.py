@@ -257,3 +257,56 @@ class Item(BaseModel):
 class AutocompleteOut(BaseModel):
     count: int
     items: List[Item]
+
+
+class ListingMediaItem(BaseModel):
+    id: int
+    media_type_id: int
+    url: str
+    caption: Optional[str]
+    position: Optional[int]
+    updated_at: datetime
+
+
+class ListingMediaOut(BaseModel):
+    count: int
+    items: List[ListingMediaItem]
+
+
+class OpenHouseItem(BaseModel):
+    id: int
+    starts_at: datetime
+    ends_at: Optional[datetime]
+    type: str
+    note: Optional[str]
+
+
+class OpenHousesItem(OpenHouseItem):
+    listing_id: int
+
+
+class OpenHousesOut(BaseModel):
+    count: int
+    items: List[OpenHousesItem]
+
+
+class OpenHouseOut(BaseModel):
+    count: int
+    items: List[OpenHouseItem]
+
+
+class UserMeOut(BaseModel):
+    user_id: int
+    username: str
+
+
+class ListUser(BaseModel):
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: str
+    role: Optional[str]
+
+
+class UserOut(BaseModel):
+    count: int
+    items: List[ListUser]
