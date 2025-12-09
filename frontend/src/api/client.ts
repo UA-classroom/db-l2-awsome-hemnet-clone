@@ -1,4 +1,4 @@
-import type { Property } from '../types'
+import type { OpenHouse, Property } from '../types'
 
 const BASE_URL = 'http://127.0.0.1:8000'
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=1200&q=80'
@@ -408,12 +408,51 @@ export async function fetchListingMedia(id: string): Promise<string[]> {
 
 export async function fetchListingOpenHouses(id: string) {
   try {
-    const data = await fetchJson<{ items?: { starts_at: string; ends_at: string; type: string; note?: string | null }[] }>(
-      `/listings/${id}/open-houses`,
+    const data = await fetchJson<{ items?: { id: number; starts_at: string; ends_at: string; type: string; note?: string | null }[] }>(
+      `/listings/${id}/open/houses`,
     )
-    return data.items ?? []
+    return (
+      data.items?.map(
+        (item): OpenHouse => ({
+          id: String(item.id),
+          startsAt: item.starts_at,
+          endsAt: item.ends_at,
+          type: item.type,
+          note: item.note,
+        }),
+      ) ?? []
+    )
   } catch (error) {
     console.error(`Failed to fetch open houses for listing ${id}`, error)
+    return []
+  }
+}
+
+export async function fetchLatestOpenHouses(limit?: number, offset?: number) {
+  const params = new URLSearchParams()
+  if (limit !== undefined) params.append('limit', String(limit))
+  if (offset !== undefined) params.append('offset', String(offset))
+  const query = params.toString()
+  const path = query ? `/listings/open/houses?${query}` : '/listings/open/houses'
+
+  try {
+    const data = await fetchJson<{
+      items?: { id: number; listing_id?: number | string; starts_at: string; ends_at: string; type: string; note?: string | null }[]
+    }>(path)
+    return (
+      data.items?.map(
+        (item): OpenHouse => ({
+          id: String(item.id),
+          listingId: item.listing_id ? String(item.listing_id) : undefined,
+          startsAt: item.starts_at,
+          endsAt: item.ends_at,
+          type: item.type,
+          note: item.note,
+        }),
+      ) ?? []
+    )
+  } catch (error) {
+    console.error('Failed to fetch latest open houses', error)
     return []
   }
 }

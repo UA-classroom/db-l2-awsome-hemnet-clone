@@ -203,8 +203,39 @@ def listing_media(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{listing_id}/open-houses")
+@router.get("/open/houses")
 def listing_open_houses(
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    connection=Depends(get_db),
+):
+    query = """
+        SELECT oh.id,
+               oh.listing_id,
+               oh.starts_at,
+               oh.ends_at,
+               oht.name AS type,
+               oh.note
+        FROM open_houses oh
+        JOIN open_house_types oht ON oh.type_id = oht.id
+        ORDER BY oh.starts_at DESC
+    """
+
+    parameters: List = []
+
+    if limit is not None:
+        query += " LIMIT %s"
+        parameters.append(limit)
+    if offset is not None:
+        query += " OFFSET %s"
+        parameters.append(offset)
+
+    rows = fetch_all(connection, query, parameters)
+    return {"count": len(rows), "items": rows}
+
+
+@router.get("/{listing_id}/open/houses")
+def open_houses_for_listing(
     listing_id: int,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
@@ -321,7 +352,7 @@ def add_listing_media(
 
 
 @router.post(
-    "/{listing_id}/open-houses",
+    "/{listing_id}/open/houses",
     status_code=status.HTTP_201_CREATED,
 )
 def add_open_house(
@@ -440,7 +471,7 @@ def delete_listing(
 
 
 @router.delete(
-    "/listing-media/{media_id}",
+    "/media/{media_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_media(
@@ -456,7 +487,7 @@ def delete_media(
 
 
 @router.delete(
-    "/open-houses/{open_house_id}",
+    "/{open_house_id}/open/houses",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_open_house(

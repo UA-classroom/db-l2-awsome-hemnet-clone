@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { fetchProperties } from '../api/client'
+import { fetchLatestOpenHouses, fetchProperties } from '../api/client'
 import { PropertyCard } from '../components/PropertyCard'
 import { SearchBar } from '../components/SearchBar'
 import { useFavorites } from '../context/FavoritesContext'
-import type { Property } from '../types'
+import type { OpenHouse, Property } from '../types'
 
 export function HomePage() {
   const navigate = useNavigate()
   const { favorites, toggle } = useFavorites()
   const [search, setSearch] = useState('')
   const [featured, setFeatured] = useState<Property[]>([])
+  const [openHouses, setOpenHouses] = useState<OpenHouse[]>([])
 
   useEffect(() => {
     fetchProperties({ limit: 6, status: 'for_sale' }).then((data) => setFeatured(data.slice(0, 3)))
+    fetchLatestOpenHouses(3, 0).then((items) => setOpenHouses(items))
   }, [])
 
   const goToSearch = (nextSearch: string) => navigate(`/search?free_text_search=${encodeURIComponent(nextSearch)}`)
@@ -76,6 +78,58 @@ export function HomePage() {
           ))}
           {featured.length === 0 && (
             <p className="text-sm text-slate-600">No listings available yet. Try again shortly.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold text-slate-900">Upcoming open houses</h2>
+          <Link className="text-sm font-semibold text-emerald-700 hover:text-emerald-800" to="/search">
+            Browse listings →
+          </Link>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {openHouses.map((openHouse) => {
+            const startDate = new Date(openHouse.startsAt)
+            const endDate = new Date(openHouse.endsAt)
+            const formattedDate = startDate.toLocaleDateString('sv-SE', { weekday: 'short', month: 'short', day: 'numeric' })
+            const formattedTime = `${startDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })} – ${endDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`
+            const cardContent = (
+              <>
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  <span>{openHouse.type}</span>
+                  <span>{formattedDate}</span>
+                </div>
+                <div className="mt-3 text-lg font-semibold text-slate-900">{formattedTime}</div>
+                {openHouse.note && <p className="mt-2 text-sm text-slate-600">{openHouse.note}</p>}
+                {!openHouse.note && <p className="mt-2 text-sm text-slate-500">Detaljer saknas</p>}
+              </>
+            )
+
+            if (openHouse.listingId) {
+              return (
+                <Link
+                  key={openHouse.id}
+                  to={`/property/${openHouse.listingId}`}
+                  className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  {cardContent}
+                </Link>
+              )
+            }
+
+            return (
+              <div
+                key={openHouse.id}
+                className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100"
+              >
+                {cardContent}
+              </div>
+            )
+          })}
+          {openHouses.length === 0 && (
+            <p className="text-sm text-slate-600">No open houses announced right now. Check back soon.</p>
           )}
         </div>
       </section>

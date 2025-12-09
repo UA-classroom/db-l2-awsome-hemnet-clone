@@ -1,11 +1,11 @@
-import { MapPinIcon, PhoneIcon } from '@heroicons/react/24/outline'
+import { CalendarDaysIcon, MapPinIcon, PhoneIcon } from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { fetchListingMedia, fetchProperties, fetchProperty } from '../api/client'
+import { fetchListingMedia, fetchListingOpenHouses, fetchProperties, fetchProperty } from '../api/client'
 import { ImageGallery } from '../components/ImageGallery'
 import { PropertyCard } from '../components/PropertyCard'
 import { useFavorites } from '../context/FavoritesContext'
-import type { Property } from '../types'
+import type { OpenHouse, Property } from '../types'
 
 export function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -14,6 +14,7 @@ export function PropertyDetailPage() {
   const [otherHomes, setOtherHomes] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [images, setImages] = useState<string[]>([])
+  const [openHouses, setOpenHouses] = useState<OpenHouse[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -28,6 +29,9 @@ export function PropertyDetailPage() {
           if (!cancelled) setImages(media.length > 0 ? media : data.images)
         })
       }
+    })
+    fetchListingOpenHouses(id).then((items) => {
+      if (!cancelled) setOpenHouses(items)
     })
     fetchProperties({ limit: 4, status: 'for_sale' }).then((data) => {
       if (cancelled) return
@@ -75,6 +79,39 @@ export function PropertyDetailPage() {
                         {tag}
                       </span>
                     ))}
+                  </div>
+                )}
+                {openHouses.length > 0 && (
+                  <div className="mt-6 rounded-2xl bg-emerald-50/80 p-4 ring-1 ring-emerald-100">
+                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-800">
+                      <CalendarDaysIcon className="h-4 w-4" />
+                      Kommande visningar
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {openHouses.map((item) => {
+                        const startDate = new Date(item.startsAt)
+                        const endDate = new Date(item.endsAt)
+                        const formattedDate = startDate.toLocaleDateString('sv-SE', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                        const formattedTime = `${startDate.toLocaleTimeString('sv-SE', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })} – ${endDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`
+                        return (
+                          <div key={item.id} className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-emerald-100/70">
+                            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                              <span>{item.type}</span>
+                              <span>{formattedDate}</span>
+                            </div>
+                            <div className="mt-2 text-base font-semibold text-slate-900">{formattedTime}</div>
+                            {item.note && <p className="mt-1 text-sm text-slate-700">{item.note}</p>}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </>

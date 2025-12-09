@@ -18,3 +18,12 @@ export type Property = {
   status?: string
   image_url?: string
 }
+
+export type OpenHouse = {
+  id: string
+  listingId?: string
+  startsAt: string
+  endsAt: string
+  type: string
+  note?: string | null
+}
