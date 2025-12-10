@@ -21,6 +21,14 @@ from schemas import (
     User,
     UserMeOut,
     UserOut,
+    UserCreateOut,
+    UserUpdateOut,
+    AddressOut,
+    AddressIdOut,
+    SavedListingsOut,
+    SavedListingCreateOut,
+    SavedSearchItem,
+    SavedSearchesOut,
 )
 
 router = APIRouter(
@@ -63,7 +71,7 @@ def list_users(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{user_id}/saved-listings")
+@router.get("/{user_id}/saved-listings", response_model=SavedListingsOut)
 def user_saved_listings(
     user_id: int,
     limit: Optional[int] = None,
@@ -104,7 +112,7 @@ def user_saved_listings(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{user_id}/searches")
+@router.get("/{user_id}/searches", response_model=SavedSearchesOut)
 def user_saved_searches(
     user_id: int,
     limit: Optional[int] = None,
@@ -152,7 +160,11 @@ def user_saved_searches(
 #########################################
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=UserCreateOut,
+)
 def create_user(payload: UserCreate, connection=Depends(get_db)):
     query = """
         INSERT INTO users (email, password, first_name, last_name, phone, address_id)
@@ -206,6 +218,7 @@ def create_user(payload: UserCreate, connection=Depends(get_db)):
 @router.post(
     "/{user_id}/saved-listings",
     status_code=status.HTTP_201_CREATED,
+    response_model=SavedListingCreateOut,
 )
 def save_listing(
     user_id: int,
@@ -228,7 +241,11 @@ def save_listing(
         raise exception
 
 
-@router.post("/{user_id}/searches", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{user_id}/searches",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SavedSearchItem,
+)
 def create_saved_search(
     user_id: int,
     payload: SavedSearchCreate,
@@ -279,7 +296,9 @@ def create_saved_search(
         raise exception
 
 
-@router.post("/addresses", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/addresses", status_code=status.HTTP_201_CREATED, response_model=AddressIdOut
+)
 def create_address(
     payload: AddressCreate,
     connection=Depends(get_db),
@@ -313,7 +332,7 @@ def create_address(
 #########################################
 
 
-@router.put("/{user_id}")
+@router.put("/{user_id}", response_model=UserUpdateOut)
 def update_user(
     user_id: int,
     payload: UserUpdate,
@@ -327,11 +346,10 @@ def update_user(
             first_name = COALESCE(%s, first_name),
             last_name = COALESCE(%s, last_name),
             phone = COALESCE(%s, phone),
-            role_id = COALESCE(%s, role_id),
             address_id = COALESCE(%s, address_id),
             updated_at = NOW()
         WHERE id = %s
-        RETURNING id, email, first_name, last_name, phone, role_id, address_id, created_at, updated_at
+        RETURNING id, email, first_name, last_name, phone, address_id, created_at, updated_at
     """
     try:
         row = execute_returning(
@@ -339,24 +357,44 @@ def update_user(
             query,
             (
                 payload.email,
-                payload.password,
+                get_password_hash(payload.password),
                 payload.first_name,
                 payload.last_name,
                 payload.phone,
-                payload.role_id,
                 payload.address_id,
                 user_id,
             ),
         )
 
+        if payload.role_name:
+            put_role_name_query = """
+                UPDATE user_roles
+                SET name = %s
+                WHERE user_id = %s
+                RETURNING *
+            """
+
+            user_roles_row = execute_returning(
+                connection, put_role_name_query, (payload.role_name, user_id)
+            )
+            raise_if_not_found(user_roles_row, "User role")
+
         return raise_if_not_found(row, "User")
-    except IntegrityError as exc:
-        handle_error(exc, "Could not update user")
+    except UniqueViolation:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already exist, please try again",
+        )
+    except IntegrityError as exception:
+        handle_error(exception, "Could not update user")
     except HTTPException as exception:
         raise exception
 
 
-@router.put("/{user_id}/searches/{search_id}")
+@router.put(
+    "/{user_id}/searches/{search_id}",
+    response_model=SavedSearchItem,
+)
 def update_saved_search(
     user_id: int,
     search_id: int,
@@ -416,13 +454,13 @@ def update_saved_search(
                         )
 
         return saved_search
-    except IntegrityError as exc:
-        handle_error(exc, "Could not update saved search")
+    except IntegrityError as exception:
+        handle_error(exception, "Could not update saved search")
     except HTTPException as exception:
         raise exception
 
 
-@router.put("/addresses/{address_id}")
+@router.put("/addresses/{address_id}", response_model=AddressOut)
 def update_address(
     address_id: int,
     payload: AddressUpdate,
@@ -456,8 +494,8 @@ def update_address(
         )
 
         return raise_if_not_found(row, "Address")
-    except IntegrityError as exc:
-        handle_error(exc, "Could not update address")
+    except IntegrityError as error:
+        handle_error(error, "Could not update address")
     except HTTPException as exception:
         raise exception
 

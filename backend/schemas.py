@@ -16,6 +16,14 @@ class AddressUpdate(AddressCreate):
     pass
 
 
+class AddressOut(AddressCreate):
+    id: int
+
+
+class AddressIdOut(BaseModel):
+    id: int
+
+
 class LocationCreate(BaseModel):
     street_address: str
     postal_code: str
@@ -59,8 +67,30 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
-    role_id: Optional[int] = None
+    role_name: Optional[str] = None
     address_id: Optional[int] = None
+
+
+class UserCreateOut(BaseModel):
+    id: int
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    address_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserUpdateOut(BaseModel):
+    id: int
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    address_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class PropertyCreate(BaseModel):
@@ -257,6 +287,62 @@ class Item(BaseModel):
 class AutocompleteOut(BaseModel):
     count: int
     items: List[Item]
+
+
+class SavedListingItem(BaseModel):
+    id: int
+    created_at: datetime
+    listing_id: int
+    title: str
+    list_price: float
+    status: str
+    city: str
+    property_type: str
+
+
+class SavedListingsOut(BaseModel):
+    count: int
+    items: List[SavedListingItem]
+
+
+class SavedListingCreateOut(BaseModel):
+    id: int
+    user_id: int
+    listing_id: int
+    created_at: datetime
+
+
+class SavedSearchItem(BaseModel):
+    id: int
+    user_id: int
+    query: str
+    location: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    rooms_min: Optional[float] = None
+    rooms_max: Optional[float] = None
+    send_email: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class SavedSearchListItem(BaseModel):
+    id: int
+    query: str
+    location: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    rooms_min: Optional[float] = None
+    rooms_max: Optional[float] = None
+    send_email: bool
+    created_at: datetime
+    updated_at: datetime
+    property_types: List[str] = Field(default_factory=list)
+
+
+class SavedSearchesOut(BaseModel):
+    count: int
+    items: List[SavedSearchListItem]
 
 
 class ListingMediaItem(BaseModel):

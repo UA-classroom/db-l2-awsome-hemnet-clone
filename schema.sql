@@ -139,7 +139,7 @@ CREATE TABLE users (
 CREATE TABLE user_roles (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        VARCHAR(20) NOT NULL CHECK (name IN ('buyer','seller','agent','admin')),
-    user_id     INTEGER NOT NULL REFERENCES users(id)
+    user_id     INTEGER NOT NULL UNIQUE REFERENCES users(id)
 );
 
 
