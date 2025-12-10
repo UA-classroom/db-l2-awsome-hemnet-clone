@@ -1,9 +1,16 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
+from psycopg2.errors import UniqueViolation
 from psycopg2.extras import RealDictCursor
 from db import fetch_all, execute_returning
-from helpers import get_db, handle_error, raise_if_not_found, get_current_user
+from helpers import (
+    get_db,
+    handle_error,
+    raise_if_not_found,
+    get_current_user,
+    get_password_hash,
+)
 from schemas import (
     UserCreate,
     SavedSearchCreate,
@@ -163,7 +170,7 @@ def create_user(payload: UserCreate, connection=Depends(get_db)):
             query,
             (
                 payload.email,
-                payload.password,
+                get_password_hash(payload.password),
                 payload.first_name,
                 payload.last_name,
                 payload.phone,
@@ -185,6 +192,11 @@ def create_user(payload: UserCreate, connection=Depends(get_db)):
             )
 
         return row
+    except UniqueViolation:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already exist, please try again",
+        )
     except IntegrityError as exc:
         handle_error(exc, "User could not be created (email might already exist)")
     except HTTPException as exception:
@@ -271,12 +283,11 @@ def create_saved_search(
 def create_address(
     payload: AddressCreate,
     connection=Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
     query = """
         INSERT INTO addresses (street_address, postal_code, city, municipality, county, country)
         VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING *
+        RETURNING id
     """
     try:
         row = execute_returning(

@@ -138,7 +138,7 @@ CREATE TABLE users (
 
 CREATE TABLE user_roles (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name        VARCHAR(20) NOT NULL CHECK (name IN ('buyer','seller','agent','admin')),  
+    name        VARCHAR(20) NOT NULL CHECK (name IN ('buyer','seller','agent','admin')),
     user_id     INTEGER NOT NULL REFERENCES users(id)
 );
 
@@ -151,7 +151,7 @@ CREATE TABLE saved_searches (
     location    VARCHAR(150),
 
     price_min   NUMERIC,
-    price_max   NUMERIC, 
+    price_max   NUMERIC,
 
     rooms_min   NUMERIC, -- NULL = "Any"
     rooms_max   NUMERIC, -- NULL = "Any"

@@ -46,18 +46,18 @@ INSERT INTO addresses (street_address, postal_code, city, municipality, county, 
 -- ============================================
 -- USERS
 -- ============================================
-INSERT INTO users (email, password, first_name, last_name, phone, role_id, address_id) VALUES
-('anna.lindqvist@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Anna', 'Lindqvist', '070-123 45 67', NULL, 1),
-('erik.johansson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Erik', 'Johansson', '073-234 56 78', NULL, 2),
-('maria.andersson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Maria', 'Andersson', '076-345 67 89', NULL, 3),
-('johan.nilsson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Johan', 'Nilsson', '070-456 78 90', NULL, 4),
-('sara.bergström@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Sara', 'Bergström', '073-567 89 01', NULL, 5),
-('anders.svensson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Anders', 'Svensson', '076-678 90 12', NULL, 6),
-('lisa.pettersson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Lisa', 'Pettersson', '070-789 01 23', NULL, 7),
-('magnus.karlsson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Magnus', 'Karlsson', '073-890 12 34', NULL, 8),
-('emma.olsson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Emma', 'Olsson', '076-901 23 45', NULL, NULL),
-('peter.eriksson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Peter', 'Eriksson', '070-012 34 56', NULL, NULL),
-('admin@fastighetsportal.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Admin', 'Adminsson', '08-123 45 67', NULL, NULL);
+INSERT INTO users (email, password, first_name, last_name, phone, address_id) VALUES
+('anna.lindqvist@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Anna', 'Lindqvist', '070-123 45 67', 1),
+('erik.johansson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Erik', 'Johansson', '073-234 56 78', 2),
+('maria.andersson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Maria', 'Andersson', '076-345 67 89', 3),
+('johan.nilsson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Johan', 'Nilsson', '070-456 78 90', 4),
+('sara.bergström@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Sara', 'Bergström', '073-567 89 01', 5),
+('anders.svensson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Anders', 'Svensson', '076-678 90 12', 6),
+('lisa.pettersson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Lisa', 'Pettersson', '070-789 01 23', 7),
+('magnus.karlsson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Magnus', 'Karlsson', '073-890 12 34', 8),
+('emma.olsson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Emma', 'Olsson', '076-901 23 45', NULL),
+('peter.eriksson@email.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Peter', 'Eriksson', '070-012 34 56', NULL),
+('admin@fastighetsportal.se', '$2b$12$X.g/Rxe6Y2mWFRpqreZ5G.IfqX/BTl0w9.yluO9DxyCdQWNQEVSs2', 'Admin', 'Adminsson', '08-123 45 67', NULL);
 
 -- ============================================
 -- USER_ROLES
