@@ -43,6 +43,7 @@ INSERT INTO property_types (name) VALUES
 ('townhouse'),
 ('vacation_home'),
 ('farm'),
+('plot'),
 ('other');
 
 CREATE TABLE tenures (

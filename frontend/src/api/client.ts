@@ -222,7 +222,7 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
   if (filters.offset) params.append('offset', String(filters.offset))
 
   try {
-    const data = await fetchJson<{ items?: ApiProperty[]; count?: number } | ApiProperty[]>(`/listings?${params.toString()}`)
+    const data = await fetchJson<{ items?: ApiProperty[]; count?: number } | ApiProperty[]>(`/listings/?${params.toString()}`)
     const items = Array.isArray(data) ? data : data?.items ?? []
     return items.map(normalizeProperty)
   } catch (error) {

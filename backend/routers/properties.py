@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
-from db import fetch_one, execute_returning
+from db import fetch_one, fetch_all, execute_returning
 from helpers import (
     get_db,
     raise_if_not_found,
@@ -52,6 +52,14 @@ def property_detail(property_id: int, connection=Depends(get_db)):
     row = fetch_one(connection, query, (property_id,))
     return raise_if_not_found(row, "Property")
 
+
+@router.get("/types")
+def property_types(connection=Depends(get_db)):
+    query = """
+        SELECT name AS type FROM property_types
+    """
+    rows = fetch_all(connection, query)
+    return raise_if_not_found(rows, "Property types")
 
 #########################################
 #                POST                   #

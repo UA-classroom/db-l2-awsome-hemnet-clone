@@ -23,6 +23,7 @@ const propertyTypeOptions = [
   { label: 'Townhouse', value: 'townhouse' },
   { label: 'Vacation home', value: 'vacation_home' },
   { label: 'Farm', value: 'farm' },
+  { label: 'Plot', value: 'plot' },
   { label: 'Other', value: 'other' },
 ]
 
