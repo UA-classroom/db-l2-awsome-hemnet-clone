@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 from db import fetch_all, fetch_one, execute_returning
@@ -444,6 +444,8 @@ def update_listing(
         return raise_if_not_found(listing, "Listing")
     except IntegrityError as exc:
         handle_error(exc, "Could not update listing")
+    except HTTPException as exception:
+        raise exception
 
 
 #########################################

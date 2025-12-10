@@ -131,7 +131,6 @@ CREATE TABLE users (
     first_name  VARCHAR(100),
     last_name   VARCHAR(100),
     phone       VARCHAR(50),
-    role_id     INTEGER,               
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     address_id  INTEGER REFERENCES addresses(id)

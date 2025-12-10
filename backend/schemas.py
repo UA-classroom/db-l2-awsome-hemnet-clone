@@ -49,7 +49,7 @@ class UserCreate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
-    role_id: Optional[int] = None
+    role_name: Optional[str] = None
     address_id: Optional[int] = None
 
 

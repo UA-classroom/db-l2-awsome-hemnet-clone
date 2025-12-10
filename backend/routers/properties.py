@@ -61,6 +61,7 @@ def property_types(connection=Depends(get_db)):
     rows = fetch_all(connection, query)
     return raise_if_not_found(rows, "Property types")
 
+
 #########################################
 #                POST                   #
 #########################################
@@ -101,6 +102,8 @@ def create_property(
         return row
     except IntegrityError as exc:
         handle_error(exc, "Could not create property (check foreign keys)")
+    except HTTPException as exception:
+        raise exception
 
 
 #########################################
@@ -155,6 +158,8 @@ def update_property(
         return raise_if_not_found(row, "Property")
     except IntegrityError as exc:
         handle_error(exc, "Could not update property")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.put("/locations/{location_id}", response_model=LocationOut)
@@ -197,6 +202,8 @@ def update_location(
         return raise_if_not_found(row, "Location")
     except IntegrityError as exc:
         handle_error(exc, "Could not update location")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.post(
@@ -231,6 +238,8 @@ def create_location(
         return row
     except IntegrityError as exc:
         handle_error(exc, "Could not create location")
+    except HTTPException as exception:
+        raise exception
 
 
 #########################################

@@ -18,7 +18,10 @@ tags_metadata = [
         "name": "agents",
         "description": "Operations with agents info.",
     },
-    {"name": "agencies", "description": "Operations with agencies info."},
+    {
+        "name": "agencies", 
+        "description": "Operations with agencies info.",
+    },
     {
         "name": "users",
         "description": "Operations with users info.",

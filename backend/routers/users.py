@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 from db import fetch_all, execute_returning
@@ -146,15 +146,16 @@ def user_saved_searches(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_user(
-    payload: UserCreate,
-    connection=Depends(get_db),
-    _: User = Depends(get_current_user),
-):
+def create_user(payload: UserCreate, connection=Depends(get_db)):
     query = """
-        INSERT INTO users (email, password, first_name, last_name, phone, role_id, address_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        RETURNING id, email, first_name, last_name, phone, role_id, address_id, created_at, updated_at
+        INSERT INTO users (email, password, first_name, last_name, phone, address_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id, email, first_name, last_name, phone, address_id, created_at, updated_at
+    """
+    query_user_roles = """
+        INSERT INTO user_roles (name, user_id)
+        VALUES (%s, %s)
+        RETURNING *
     """
     try:
         row = execute_returning(
@@ -166,14 +167,28 @@ def create_user(
                 payload.first_name,
                 payload.last_name,
                 payload.phone,
-                payload.role_id,
                 payload.address_id,
             ),
         )
 
+        if row:
+            raise_if_not_found(
+                execute_returning(
+                    connection,
+                    query_user_roles,
+                    (
+                        payload.role_name,
+                        row["id"],
+                    ),
+                ),
+                "User role",
+            )
+
         return row
     except IntegrityError as exc:
         handle_error(exc, "User could not be created (email might already exist)")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.post(
@@ -197,6 +212,8 @@ def save_listing(
         return row
     except IntegrityError as exc:
         handle_error(exc, "Listing already saved or invalid reference")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.post("/{user_id}/searches", status_code=status.HTTP_201_CREATED)
@@ -246,6 +263,8 @@ def create_saved_search(
         return row
     except IntegrityError as exc:
         handle_error(exc, "Could not create saved search")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.post("/addresses", status_code=status.HTTP_201_CREATED)
@@ -322,6 +341,8 @@ def update_user(
         return raise_if_not_found(row, "User")
     except IntegrityError as exc:
         handle_error(exc, "Could not update user")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.put("/{user_id}/searches/{search_id}")
@@ -386,6 +407,8 @@ def update_saved_search(
         return saved_search
     except IntegrityError as exc:
         handle_error(exc, "Could not update saved search")
+    except HTTPException as exception:
+        raise exception
 
 
 @router.put("/addresses/{address_id}")
@@ -424,6 +447,8 @@ def update_address(
         return raise_if_not_found(row, "Address")
     except IntegrityError as exc:
         handle_error(exc, "Could not update address")
+    except HTTPException as exception:
+        raise exception
 
 
 #########################################
