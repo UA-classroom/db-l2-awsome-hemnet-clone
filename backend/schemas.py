@@ -185,8 +185,8 @@ class ListingDetailOut(BaseModel):
     status: str
     list_price: float
     price_type_id: int
-    published_at: datetime
-    expires_at: datetime
+    published_at: Optional[datetime]
+    expires_at: Optional[datetime]
     external_ref: str
     property_type: str
     tenure: str

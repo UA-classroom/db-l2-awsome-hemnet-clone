@@ -19,7 +19,7 @@ tags_metadata = [
         "description": "Operations with agents info.",
     },
     {
-        "name": "agencies", 
+        "name": "agencies",
         "description": "Operations with agencies info.",
     },
     {
