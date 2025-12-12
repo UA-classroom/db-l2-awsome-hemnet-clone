@@ -11,6 +11,10 @@ from helpers import (
 from schemas import (
     AgencyCreate,
     AgencyUpdate,
+    AgencyCreateOut,
+    AgencyUpdateOut,
+    AgencyDetailOut,
+    AgenciesOut,
     User,
 )
 
@@ -25,7 +29,7 @@ router = APIRouter(
 #########################################
 
 
-@router.get("/")
+@router.get("/", response_model=AgenciesOut)
 def list_agencies(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
@@ -54,7 +58,7 @@ def list_agencies(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{agency_id}")
+@router.get("/{agency_id}", response_model=AgencyDetailOut)
 def agencies_datail(agency_id: int, connection=Depends(get_db)):
     query = """
         SELECT id,
@@ -75,7 +79,7 @@ def agencies_datail(agency_id: int, connection=Depends(get_db)):
 #########################################
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=AgencyCreateOut)
 def create_agency(
     payload: AgencyCreate,
     connection=Depends(get_db),
@@ -103,7 +107,7 @@ def create_agency(
 #########################################
 
 
-@router.put("/{agency_id}")
+@router.put("/{agency_id}", response_model=AgencyUpdateOut)
 def update_agency(
     agency_id: int,
     payload: AgencyUpdate,

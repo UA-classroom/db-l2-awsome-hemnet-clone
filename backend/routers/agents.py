@@ -11,6 +11,11 @@ from helpers import (
 from schemas import (
     AgentCreate,
     AgentUpdate,
+    AgentCreateOut,
+    AgentUpdateOut,
+    AgentDetailOut,
+    AgentsOut,
+    AgentNameOut,
     User,
 )
 
@@ -25,7 +30,7 @@ router = APIRouter(
 #########################################
 
 
-@router.get("/")
+@router.get("/", response_model=AgentsOut)
 def list_agents(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
@@ -60,7 +65,7 @@ def list_agents(
     return {"count": len(rows), "items": rows}
 
 
-@router.get("/{agent_id}")
+@router.get("/{agent_id}", response_model=AgentDetailOut)
 def agent_detail(agent_id: int, connection=Depends(get_db)):
     query = """
         SELECT a.id,
@@ -87,7 +92,7 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
 #########################################
 
 
-@router.post("/{agency_id}", status_code=status.HTTP_201_CREATED)
+@router.post("/{agency_id}", status_code=status.HTTP_201_CREATED, response_model=AgentCreateOut)
 def create_agent(
     payload: AgentCreate,
     connection=Depends(get_db),
@@ -128,7 +133,7 @@ def create_agent(
 #########################################
 
 
-@router.put("/{agent_id}")
+@router.put("/{agent_id}", response_model=AgentUpdateOut)
 def update_agent(
     agent_id: int,
     payload: AgentUpdate,
@@ -211,7 +216,7 @@ def delete_agent(
 #########################################
 
 
-@router.patch("/{agents_id}/change/name")
+@router.patch("/{agents_id}/change/name", response_model=AgentNameOut)
 def update_agent_name(
     agent_id: int,
     first_name: str,

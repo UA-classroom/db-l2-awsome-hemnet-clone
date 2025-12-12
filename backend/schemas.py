@@ -247,6 +247,32 @@ class AgencyUpdate(BaseModel):
     website: Optional[str] = None
 
 
+class AgencyItem(BaseModel):
+    id: int
+    name: str
+    org_number: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+
+
+class AgenciesOut(BaseModel):
+    count: int
+    items: List[AgencyItem]
+
+
+class AgencyDetailOut(AgencyItem):
+    pass
+
+
+class AgencyCreateOut(AgencyItem):
+    created_at: datetime
+
+
+class AgencyUpdateOut(AgencyItem):
+    created_at: datetime
+    updated_at: datetime
+
+
 class AgentCreate(BaseModel):
     user_id: int
     agency_id: Optional[int] = None
@@ -261,6 +287,43 @@ class AgentUpdate(BaseModel):
     title: Optional[str] = None
     license_number: Optional[str] = None
     bio: Optional[str] = None
+
+
+class AgentListItem(BaseModel):
+    id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: EmailStr
+    phone: Optional[str] = None
+    title: Optional[str] = None
+    license_number: Optional[str] = None
+    agency: Optional[str] = None
+
+
+class AgentsOut(BaseModel):
+    count: int
+    items: List[AgentListItem]
+
+
+class AgentDetailOut(AgentListItem):
+    bio: Optional[str] = None
+
+
+class AgentCreateOut(BaseModel):
+    id: int
+    user_id: int
+    title: Optional[str] = None
+    license_number: Optional[str] = None
+    bio: Optional[str] = None
+    created_at: datetime
+
+
+class AgentUpdateOut(AgentCreateOut):
+    updated_at: datetime
+
+
+class AgentNameOut(BaseModel):
+    title: Optional[str] = None
 
 
 class Token(BaseModel):
