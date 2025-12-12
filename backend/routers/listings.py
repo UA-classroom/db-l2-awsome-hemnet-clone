@@ -15,12 +15,15 @@ from schemas import (
     OpenHouseCreate,
     ListingUpdate,
     User,
+    ListingMutateOut,
     AutocompleteOut,
     ListingOut,
     ListingDetailOut,
     ListingMediaOut,
     OpenHousesOut,
     OpenHouseOut,
+    ListingMediaCreateOut,
+    OpenHouseCreateOut,
 )
 
 
@@ -281,6 +284,7 @@ def open_houses_for_listing(
     "/",
     status_code=status.HTTP_201_CREATED,
     description="Add a property first to get the property ID",
+    response_model=ListingMutateOut,
 )
 def create_listing(
     payload: ListingCreate,
@@ -327,6 +331,7 @@ def create_listing(
 @router.post(
     "/{listing_id}/media",
     status_code=status.HTTP_201_CREATED,
+    response_model=ListingMediaCreateOut,
 )
 def add_listing_media(
     listing_id: int,
@@ -360,6 +365,7 @@ def add_listing_media(
 @router.post(
     "/{listing_id}/open/houses",
     status_code=status.HTTP_201_CREATED,
+    response_model=OpenHouseCreateOut,
 )
 def add_open_house(
     listing_id: int,
@@ -395,7 +401,7 @@ def add_open_house(
 #########################################
 
 
-@router.put("/{listing_id}")
+@router.put("/{listing_id}", response_model=ListingMutateOut)
 def update_listing(
     listing_id: int,
     payload: ListingUpdate,
@@ -517,7 +523,7 @@ def delete_open_house(
 #########################################
 
 
-@router.patch("/{listing_id}/change/title")
+@router.patch("/{listing_id}/change/title", response_model=ListingMutateOut)
 def update_listing_title(
     listing_id: int,
     title: str,

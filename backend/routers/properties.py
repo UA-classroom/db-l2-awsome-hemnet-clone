@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, status, Response, HTTPException
 from psycopg2 import IntegrityError
 from db import fetch_one, fetch_all, execute_returning
@@ -15,6 +16,7 @@ from schemas import (
     User,
     PropertyOut,
     LocationOut,
+    PropertyTypeItem,
 )
 
 
@@ -28,7 +30,7 @@ router = APIRouter(
 #########################################
 
 
-@router.get("/{property_id}")
+@router.get("/{property_id}", response_model=PropertyOut)
 def property_detail(property_id: int, connection=Depends(get_db)):
     query = """
         SELECT p.id,
@@ -53,7 +55,7 @@ def property_detail(property_id: int, connection=Depends(get_db)):
     return raise_if_not_found(row, "Property")
 
 
-@router.get("/types")
+@router.get("/types", response_model=List[PropertyTypeItem])
 def property_types(connection=Depends(get_db)):
     query = """
         SELECT name AS type FROM property_types

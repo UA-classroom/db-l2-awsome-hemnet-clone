@@ -128,6 +128,10 @@ class PropertyOut(BaseModel):
     updated_at: datetime
 
 
+class PropertyTypeItem(BaseModel):
+    type: str
+
+
 class ListingCreate(BaseModel):
     agent_id: int
     title: str
@@ -178,6 +182,21 @@ class ListingMediaCreate(BaseModel):
     position: Optional[int] = None
 
 
+class ListingMutateOut(BaseModel):
+    id: int
+    agent_id: int
+    title: str
+    description: Optional[str] = None
+    status_id: int
+    list_price: Optional[float] = None
+    price_type_id: Optional[int] = None
+    published_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    external_ref: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class ListingDetailOut(BaseModel):
     id: int
     title: str
@@ -205,6 +224,15 @@ class ListingDetailOut(BaseModel):
 
 
 class OpenHouseCreate(BaseModel):
+    starts_at: datetime
+    ends_at: Optional[datetime] = None
+    type_id: int
+    note: Optional[str] = None
+
+
+class OpenHouseCreateOut(BaseModel):
+    id: int
+    listing_id: int
     starts_at: datetime
     ends_at: Optional[datetime] = None
     type_id: int
@@ -415,6 +443,10 @@ class ListingMediaItem(BaseModel):
     caption: Optional[str]
     position: Optional[int]
     updated_at: datetime
+
+
+class ListingMediaCreateOut(ListingMediaItem):
+    listing_id: int
 
 
 class ListingMediaOut(BaseModel):
