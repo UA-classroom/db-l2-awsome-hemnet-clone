@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS open_houses;
 DROP TABLE IF EXISTS listing_media;
+DROP TABLE IF EXISTS user_media;
 DROP TABLE IF EXISTS saved_listings;
 DROP TABLE IF EXISTS listing_agents;
 DROP TABLE IF EXISTS listing_properties;
@@ -27,6 +28,7 @@ DROP TABLE IF EXISTS property_types;
 DROP TABLE IF EXISTS tenures;
 DROP TABLE IF EXISTS listing_status;
 DROP TABLE IF EXISTS price_types;
+DROP TABLE IF EXISTS user_media_types;
 
 
 
@@ -88,6 +90,17 @@ INSERT INTO media_types (name) VALUES
 ('image'),
 ('floorplan'),
 ('video');
+
+CREATE TABLE user_media_types (
+    id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL
+);
+
+INSERT INTO user_media_types (name) VALUES
+('image'),
+('avatar'),
+('video');
+
 
 CREATE TABLE open_house_types (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -256,6 +269,17 @@ CREATE TABLE listing_media (
     position        INTEGER,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE user_media (
+    id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    listing_id      INTEGER NOT NULL REFERENCES users(id),
+    media_type_id   INTEGER NOT NULL REFERENCES user_media_types(id),
+    url             TEXT NOT NULL,
+    caption         TEXT,
+    position        INTEGER,
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 
 CREATE TABLE open_houses (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
