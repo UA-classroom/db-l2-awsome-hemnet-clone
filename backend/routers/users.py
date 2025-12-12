@@ -445,6 +445,9 @@ def update_saved_search(
                         (search_id,),
                     )
                     for property_type in payload.property_types:
+                        if property_type is None:
+                            continue
+
                         cursor.execute(
                             property_type_insert, (search_id, property_type.lower())
                         )
