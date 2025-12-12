@@ -92,7 +92,9 @@ def agent_detail(agent_id: int, connection=Depends(get_db)):
 #########################################
 
 
-@router.post("/{agency_id}", status_code=status.HTTP_201_CREATED, response_model=AgentCreateOut)
+@router.post(
+    "/{agency_id}", status_code=status.HTTP_201_CREATED, response_model=AgentCreateOut
+)
 def create_agent(
     payload: AgentCreate,
     connection=Depends(get_db),
