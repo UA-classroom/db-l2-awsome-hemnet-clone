@@ -13,7 +13,7 @@ DROP TABLE IF EXISTS properties;
 DROP TABLE IF EXISTS saved_searches;
 DROP TABLE IF EXISTS user_roles;
 
-DROP TABLE IF EXISTS agents;  
+DROP TABLE IF EXISTS agents;
 
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS addresses;
@@ -187,7 +187,7 @@ CREATE TABLE agencies (
     phone       VARCHAR(50),
     website     TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE agents (
@@ -196,8 +196,8 @@ CREATE TABLE agents (
     title           VARCHAR(100),
     license_number  VARCHAR(100),
     bio             TEXT,
-	created_at  	TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	updated_at  	TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE agent_agencies (
