@@ -1,2 +1,7 @@
 psycopg2-binary
 fastapi[standard]
+python-dotenv
+python-jose[cryptography]
+python-multipart
+passlib[bcrypt]
+bcrypt<5
